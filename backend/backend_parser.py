@@ -12,26 +12,29 @@ get_count_params_map = dict.fromkeys(['bmk', 'cmdP', 'cmd05', 'cmd10', 'cmd15', 
                                       'countKT22', 'countKR22', 'cs'], 'default')
 gPr_params_map = dict.fromkeys(['bmk', 'pr0', 'pr1', 'pr2', 'er',
                                 'bmkC', 'prC0', 'prC1', 'erC', 'cs'], 'default')
-status_params_map = dict.fromkeys(['bmk', 'bmkS', 'bmkSK', 'pr','pr0', 'pr1',
+get_status_params_map = dict.fromkeys(['bmk', 'bmkS', 'bmkSK', 'pr', 'pr0', 'pr1',
                                    'temp', 'P05', 'P10', 'P15', 'P20', 'P25',
                                    'P30', 'P35', 'Err', 'uPit', 'temHeart', 'timeW', 'prAtmCal0',
                                    'prAtmCal1', 'Styp', 'l', 'temp2', 'timeR', 'cs'], 'default')
-get_delta_params_map = dict.fromkeys(['bmk','FtUP','FtDN','FsUP','FsDN','DelayPT','DelayTP','AlgT','AlgP','cs'],'default')
+get_delta_params_map = dict.fromkeys(
+    ['bmk', 'FtUP', 'FtDN', 'FsUP', 'FsDN', 'DelayPT', 'DelayTP', 'AlgT', 'AlgP', 'cs'], 'default')
 
-status_params = status_params_map.keys()
+status_params = get_status_params_map.keys()
 get_count_params = get_count_params_map.keys()
 gPr_params = gPr_params_map.keys()
 get_delta_params = get_delta_params_map.keys()
+
 
 def parse_get_status(str):
     var = str.replace('=', ' ')
     var = var.split()
     for i in var:
         if i in status_params:
-            status_params_map[i] = var[var.index(i) + 1]
-    if 'default' in status_params_map.values():
-        return False 
+            get_status_params_map[i] = var[var.index(i) + 1]
+    if 'default' in get_status_params_map.values():
+        return False
     return True
+
 
 def parse_gPr(str):
     var = str.replace('=', ' ')
@@ -43,6 +46,7 @@ def parse_gPr(str):
         return False
     return True
 
+
 def parse_get_count(str):
     var = str.replace('=', ' ')
     var = var.spit()
@@ -53,6 +57,7 @@ def parse_get_count(str):
         return False
     return True
 
+
 def parse_get_delta(str):
     var = str.replace('=', ' ')
     var = var.spit()
@@ -62,3 +67,28 @@ def parse_get_delta(str):
     if 'default' in get_delta_params_map.values():
         return False
     return True
+
+
+def parse_settings_commans(str):
+    if 'OK' in str:
+        return True
+    else:
+        return False
+
+
+def parse_com_str(str, last_command):
+    str = str.decode("utf-8")
+    if 'incorrect command' in str:
+        return False
+    elif last_command == 'get_status':
+        return parse_get_status(str)
+    elif last_command == 'gPr':
+        return parse_gPr(str)
+    elif last_command == 'get_count':
+        return parse_get_count(str)
+    elif last_command == 'get_delta':
+        return parse_get_delta(str)
+    else: 
+        return parse_settings_commans(str)
+
+
