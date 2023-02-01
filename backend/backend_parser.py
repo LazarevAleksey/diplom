@@ -45,7 +45,7 @@ error_list = ["неисправен, не подключен или не отк�
               "включен ручной режим обогрева "]
 
 
-status_params = get_status_params_map.keys()
+get_status_params = get_status_params_map.keys()
 get_count_params = get_count_params_map.keys()
 gPr_params = gPr_params_map.keys()
 get_delta_params = get_delta_params_map.keys()
@@ -63,20 +63,21 @@ def check_err(str: str) -> list:
     return tmp_err_lst
 
 
-
 def parse_get_status(str: str) -> bool:
     var = str.replace('=', ' ')
     var = var.split()
-    for i in var:
-        if i in status_params:
-            if not var.index(i) == (len(var)-1):
-                get_status_params_map[i] = var[var.index(i)+1]
-    if 'default' in get_status_params_map.values():
-        return False
-    return True
+    if var:
+        if var[0] == 'bmk' and var[len(var)-2] == 'cs':
+            for i in var:
+                if i in get_status_params:
+                    get_status_params_map[i] = var[var.index(i)+1]
+            if 'default' in get_status_params_map.values():
+                return False
+            return True
+    return False
 
 
-def parse_gPr(str: str) ->bool:
+def parse_gPr(str: str) -> bool:
     var = str.replace('=', ' ')
     var = var.spit()
     for i in var:
@@ -90,26 +91,32 @@ def parse_gPr(str: str) ->bool:
 
 def parse_get_count(str: str) -> bool:
     var = str.replace('=', ' ')
-    var = var.spit()
-    for i in var:
-        if i in get_count_params:
-            if not var.index(i) == (len(var)-1):
-                get_count_params_map[i] = var[var.index(i) + 1]
-    if 'default' in get_count_params_map.values():
-        return False
-    return True
+    var = var.split()
+    if var:
+        if var[0] == 'bmk' and var[len(var)-2] == 'cs':
+            for i in var:
+                if i in get_count_params:
+                    if not var.index(i) == (len(var)-1):
+                        get_count_params_map[i] = var[var.index(i) + 1]
+            if 'default' in get_count_params_map.values():
+                return False
+            return True
+    return False
 
 
 def parse_get_delta(str: str) -> bool:
     var = str.replace('=', ' ')
-    var = var.spit()
-    for i in var:
-        if i in get_delta_params:
-            if not var.index(i) == (len(var)-1):
-                get_delta_params_map[i] = var[var.index(i) + 1]
-    if 'default' in get_delta_params_map.values():
-        return False
-    return True
+    var = var.split()
+    if var:
+        if var[0] == 'bmk' and var[len(var)-2] == 'cs':
+            for i in var:
+                if i in get_delta_params:
+                    if not var.index(i) == (len(var)-1):
+                        get_delta_params_map[i] = var[var.index(i) + 1]
+            if 'default' in get_delta_params_map.values():
+                return False
+            return True
+    return False
 
 
 def parse_settings_commans(str: str) -> bool:
@@ -120,7 +127,7 @@ def parse_settings_commans(str: str) -> bool:
 
 
 def parse_com_str(str: str, last_command: str) -> bool:
-    str = str.decode("utf-8")
+    str = str.decode(encoding='utf-8', errors='ignore')
     if 'incorrect command' in str:
         return False
     elif last_command == 'get_status':
@@ -131,6 +138,7 @@ def parse_com_str(str: str, last_command: str) -> bool:
         return parse_get_count(str)
     elif last_command == 'get_delta':
         return parse_get_delta(str)
-    else: 
+    else:
         return parse_settings_commans(str)
+
 

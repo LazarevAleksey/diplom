@@ -8,7 +8,7 @@ from . import backend_parser as parser
 import serial
 import serial.tools.list_ports
 PORT = 'default'
-BAUD = 9600
+BAUD = 38400
 BYTE_SIZE = 8
 PARITY = 'N'
 STOP_BITS = 1
