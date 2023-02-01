@@ -69,7 +69,8 @@ def parse_get_status(str: str) -> bool:
     var = var.split()
     for i in var:
         if i in status_params:
-            get_status_params_map[i] = var[var.index(i) + 1]
+            if not var.index(i) == (len(var)-1):
+                get_status_params_map[i] = var[var.index(i)+1]
     if 'default' in get_status_params_map.values():
         return False
     return True
@@ -80,7 +81,8 @@ def parse_gPr(str: str) ->bool:
     var = var.spit()
     for i in var:
         if i in gPr_params_map:
-            gPr_params_map[i] = var[var.index(i) + 1]
+            if not var.index(i) == (len(var)-1):
+                gPr_params_map[i] = var[var.index(i) + 1]
     if 'default' in gPr_params_map.values():
         return False
     return True
@@ -91,7 +93,8 @@ def parse_get_count(str: str) -> bool:
     var = var.spit()
     for i in var:
         if i in get_count_params:
-            get_count_params_map[i] = var[var.index(i) + 1]
+            if not var.index(i) == (len(var)-1):
+                get_count_params_map[i] = var[var.index(i) + 1]
     if 'default' in get_count_params_map.values():
         return False
     return True
@@ -102,7 +105,8 @@ def parse_get_delta(str: str) -> bool:
     var = var.spit()
     for i in var:
         if i in get_delta_params:
-            get_delta_params_map[i] = var[var.index(i) + 1]
+            if not var.index(i) == (len(var)-1):
+                get_delta_params_map[i] = var[var.index(i) + 1]
     if 'default' in get_delta_params_map.values():
         return False
     return True

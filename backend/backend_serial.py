@@ -4,8 +4,8 @@
 # Here is code to transmit and resive messeges
 
 
-import backend_parser as parser
-import serial as ser
+from . import backend_parser as parser
+import serial
 import serial.tools.list_ports
 PORT = 'default'
 BAUD = 9600
@@ -30,7 +30,7 @@ def commands_generator(buk_num: str, command: str) -> str:
 def send_command(buk_num: str, command: str) -> bool:
     str_command = str.encode(commands_generator(buk_num, command))
     PORT = avilable_com()
-    with ser.Serial(PORT, BAUD, BYTE_SIZE, PARITY, STOP_BITS, timeout=1) as port:
+    with serial.Serial(PORT, BAUD, BYTE_SIZE, PARITY, STOP_BITS, timeout=0.5) as port:
         for i in range(ATTEMPTS):
             if port.write(str_command):
                 line = port.readline()
@@ -45,3 +45,6 @@ def send_command(buk_num: str, command: str) -> bool:
                 # logs
                 continue
         return False
+
+
+
