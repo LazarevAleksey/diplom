@@ -5,6 +5,11 @@
 # getStatus - request for general system parameters
 # gPr - pressure request
 # For each of them im made a answer pares func and map
+# Example of string (getStatus command): 
+# bmk=009 bmkS=007 bmkSK=2 pr=000 pr0=000 pr1=000 temp=+232 P05=064 
+# P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000000  uPit=23  temHeart=+05 
+# timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 
+# cs=114 
 
 
 get_count_params_map = dict.fromkeys(['bmk', 'cmdP', 'cmd05', 'cmd10', 'cmd15', 'cmd20', 'cmd25', 'cmd30', 'cmd35',
@@ -46,20 +51,20 @@ gPr_params = gPr_params_map.keys()
 get_delta_params = get_delta_params_map.keys()
 
 
-def check_err(str):
+def check_err(str: str) -> list:
     if int(str) == 0:
-        return True
-    tmp_err_lst = []
+        tmp_err_lst = []
+        return tmp_err_lst
     err = int(str)
     for i in range(len(error_list)):
         if err & 1:
             tmp_err_lst.append(error_list[i])
-        err = err >> 1 
+        err = err >> 1
     return tmp_err_lst
 
 
 
-def parse_get_status(str):
+def parse_get_status(str: str) -> bool:
     var = str.replace('=', ' ')
     var = var.split()
     for i in var:
@@ -70,7 +75,7 @@ def parse_get_status(str):
     return True
 
 
-def parse_gPr(str):
+def parse_gPr(str: str) ->bool:
     var = str.replace('=', ' ')
     var = var.spit()
     for i in var:
@@ -81,7 +86,7 @@ def parse_gPr(str):
     return True
 
 
-def parse_get_count(str):
+def parse_get_count(str: str) -> bool:
     var = str.replace('=', ' ')
     var = var.spit()
     for i in var:
@@ -92,7 +97,7 @@ def parse_get_count(str):
     return True
 
 
-def parse_get_delta(str):
+def parse_get_delta(str: str) -> bool:
     var = str.replace('=', ' ')
     var = var.spit()
     for i in var:
@@ -103,14 +108,14 @@ def parse_get_delta(str):
     return True
 
 
-def parse_settings_commans(str):
+def parse_settings_commans(str: str) -> bool:
     if 'OK' in str:
         return True
     else:
         return False
 
 
-def parse_com_str(str, last_command):
+def parse_com_str(str: str, last_command: str) -> bool:
     str = str.decode("utf-8")
     if 'incorrect command' in str:
         return False
