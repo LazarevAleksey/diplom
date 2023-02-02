@@ -79,15 +79,18 @@ def parse_get_status(str: str) -> bool:
 
 def parse_gPr(str: str) -> bool:
     var = str.replace('=', ' ')
-    var = var.spit()
-    for i in var:
-        if i in gPr_params_map:
-            if not var.index(i) == (len(var)-1):
-                gPr_params_map[i] = var[var.index(i) + 1]
-    if 'default' in gPr_params_map.values():
-        return False
-    return True
-
+    var = var.split()
+    if var:
+        if var[0] == 'bmk' and var[len(var)-2] == 'cs':
+            for i in var:
+                for i in var:
+                    if i in gPr_params_map:
+                        if not var.index(i) == (len(var)-1):
+                            gPr_params_map[i] = var[var.index(i) + 1]
+                if 'default' in gPr_params_map.values():
+                    return False
+                return True
+    return False    
 
 def parse_get_count(str: str) -> bool:
     var = str.replace('=', ' ')

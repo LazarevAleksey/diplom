@@ -1,3 +1,6 @@
+# For GUI we chose dear pygui. For each of BUKs we made a different window, and show all
+# data in tables. For each of commands we made different button that callback
+# a function to create a context menu of command.  
 
 import dearpygui.dearpygui as dpg
 import backend.backend_parser as parser
