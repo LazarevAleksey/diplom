@@ -10,10 +10,12 @@ import serial.tools.list_ports
 PORT = 'default'
 BAUD = 38400
 BYTE_SIZE = 8
-PARITY = 'N' 
+PARITY = 'N'
 STOP_BITS = 1
 ATTEMPTS = 10
 BUK_NAME = 'Arduino'
+
+# Check if there available com ports with BUK_NAME in it
 
 
 def avilable_com() -> str:
@@ -24,9 +26,13 @@ def avilable_com() -> str:
         return '0'
     return '0'
 
+# Generate the command from command name and buk_num
+
 
 def commands_generator(buk_num: str, command: str) -> str:
     return 'bmk:' + buk_num + ":" + command
+
+# Send the command and save buk answer in get_status_params_map[]
 
 
 def send_command(buk_num: str, command: str) -> bool:
@@ -39,7 +45,7 @@ def send_command(buk_num: str, command: str) -> bool:
                     line = port.readline()
                     print(line)
                     if parser.parse_com_str(line, "get_status"):
-                        logs.success_parsing_log(line)                    
+                        logs.success_parsing_log(line)
                         return True
                     else:
                         logs.error_parsing_log(line)
@@ -50,5 +56,3 @@ def send_command(buk_num: str, command: str) -> bool:
             return False
     logs.error_open_port_log(PORT)
     return False
-
-
