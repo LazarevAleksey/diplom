@@ -20,8 +20,9 @@ def avilable_com() -> str:
     ports = serial.tools.list_ports.comports()
     for port, desc, hwid in sorted(ports):
         if BUK_NAME in desc:
-            return port
-        return 0
+            return str(port)
+        return '0'
+    return '0'
 
 
 def commands_generator(buk_num: str, command: str) -> str:
@@ -44,7 +45,7 @@ def send_command(buk_num: str, command: str) -> bool:
                         logs.error_parsing_log(line)
                         continue
                 else:
-                    logs.error_write_log(str_command)
+                    logs.error_write_log(str_command.decode())
                     continue
             return False
     logs.error_open_port_log(PORT)

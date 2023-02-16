@@ -70,7 +70,7 @@ def parse_get_status(str: str) -> bool:
         if var[0] == 'bmk' and var[len(var)-2] == 'cs':
             for i in var:
                 if i in get_status_params:
-                    get_status_params_map[i] = var[var.index(i)+1]
+                    get_status_params_map[i] = var[var.index(i) + 1]
             if 'default' in get_status_params_map.values():
                 return False
             return True
