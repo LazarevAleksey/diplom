@@ -6,7 +6,7 @@ import time
 
 def current_time() -> str:
     t = time.localtime()
-    cr_t = time.strftime("%H : %M ; % S", t)
+    cr_t = time.strftime("%H:%M:%S", t)
     return cr_t
 
 

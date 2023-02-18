@@ -23,7 +23,6 @@ def avilable_com() -> str:
     for port, desc, hwid in sorted(ports):
         if BUK_NAME in desc:
             return str(port)
-        return '0'
     return '0'
 
 # Generate the command from command name and buk_num

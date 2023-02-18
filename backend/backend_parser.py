@@ -53,12 +53,12 @@ get_delta_params = get_delta_params_map.keys()
 
 # Take the error varible and find the err from error_list
 
-
-def check_err(str: str) -> list:
-    if int(str) == 0:
-        tmp_err_lst = []
+# TODO: Make it works in send_command() from serial
+def check_err(string: str) -> list[str]:
+    tmp_err_lst:list[str] = []
+    if int(string) == 0:
         return tmp_err_lst
-    err = int(str)
+    err = int(string)
     for i in range(len(error_list)):
         if err & 1:
             tmp_err_lst.append(error_list[i])
@@ -68,9 +68,9 @@ def check_err(str: str) -> list:
 # Parse get_status answer
 
 
-def parse_get_status(str: str) -> bool:
-    var = str.replace('=', ' ')
-    var = var.split()
+def parse_get_status(string: str) -> bool:
+    r_string = string.replace('=', ' ')
+    var:list[str] = r_string.split()
     if var:
         if var[0] == 'bmk' and var[len(var)-2] == 'cs':
             for i in var:
@@ -84,9 +84,9 @@ def parse_get_status(str: str) -> bool:
 # Parse gPr answer
 
 
-def parse_gPr(str: str) -> bool:
-    var = str.replace('=', ' ')
-    var = var.split()
+def parse_gPr(string: str) -> bool:
+    r_string = string.replace('=', ' ')
+    var:list[str] = r_string.split()
     if var:
         if var[0] == 'bmk' and var[len(var)-2] == 'cs':
             for i in var:
@@ -101,9 +101,9 @@ def parse_gPr(str: str) -> bool:
 # Parse get_count answer
 
 
-def parse_get_count(str: str) -> bool:
-    var = str.replace('=', ' ')
-    var = var.split()
+def parse_get_count(string: str) -> bool:
+    r_string = string.replace('=', ' ')
+    var:list[str] = r_string.split()
     if var:
         if var[0] == 'bmk' and var[len(var)-2] == 'cs':
             for i in var:
@@ -118,9 +118,9 @@ def parse_get_count(str: str) -> bool:
 # Parse get_delta answer
 
 
-def parse_get_delta(str: str) -> bool:
-    var = str.replace('=', ' ')
-    var = var.split()
+def parse_get_delta(string: str) -> bool:
+    r_string = string.replace('=', ' ')
+    var:list[str] = r_string.split()
     if var:
         if var[0] == 'bmk' and var[len(var)-2] == 'cs':
             for i in var:
