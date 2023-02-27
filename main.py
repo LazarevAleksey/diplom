@@ -7,23 +7,27 @@ import backend.backend_parser as parser
 import backend.backend_serial as ser
 from multiprocessing import Process, Queue
 
+# Setup 4th sort mountain
+win_pos: int = 0
+current_buks_list: list[str] = []
+list_of_buks: list[str] = ['009', '255', '238', '221']
+list_of_control_com: list[str] = ['getStatus\r\n',
+                                  'gPr\r\n', 'getDelta\r\n', 'getCount\r\n']
 
-# Sending commands to all buks (Process 1)
+
+
+
 
 def main_com_loop(q: Queue) -> None:
+    # Sending commands to all buks (Process 1)
     ser.PORT = ser.avilable_com()
     while True:
-        for buk_num in parser.list_of_buks:
-            for command in parser.list_of_control_com:
+        for buk_num in list_of_buks:
+            for command in list_of_control_com:
                 data = ser.send_command(buk_num, command)
                 q.put(data)
 
-
-win_pos: int = 0
-current_buks_list: list[str] = []
-
-
-def draw_window_table(params_dict: dict[str, str], w=300, h=600) -> None:
+def draw_window_table(params_dict: dict[str, str], w:int=300, h:int=600) -> None:
     global win_pos
     with dpg.window(tag=params_dict['bmk'], label=f"Num. {params_dict['bmk']}", width=w, height=h, pos=(win_pos, 0)):
         with dpg.table(tag=f"MT_{params_dict['bmk']}", header_row=False, width=300):
@@ -36,10 +40,8 @@ def draw_window_table(params_dict: dict[str, str], w=300, h=600) -> None:
                         params_dict)[i]])
     win_pos += w
 
-# Drow a new window_table if cacth a new buk in Process 1
-
-
 def show_data(q: Queue) -> None:
+    # Drow a new window_table if cacth a new buk in Process 1
     global current_buks_list
     if not q.empty():
         params_dict = q.get_nowait()
