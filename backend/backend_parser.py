@@ -13,7 +13,7 @@
 
 # Need to store the data from BUK by default = 'default'
 get_count_params_map = dict.fromkeys(['bmk', 'cmdP', 'cmd05', 'cmd10', 'cmd15', 'cmd20', 'cmd25', 'cmd30', 'cmd35',
-                                      'cmd40', 'countKT1', 'countKR1', 'countKT2', 'countKR2'
+                                      'cmd40', 'countKT1', 'countKR1', 'countKT2', 'countKR2',
                                       'countKT22', 'countKR22', 'cs'], 'default')
 gPr_params_map = dict.fromkeys(['bmk', 'pr0', 'pr1', 'pr2', 'er',
                                 'bmkC', 'prC0', 'prC1', 'erC', 'cs'], 'default')
@@ -45,6 +45,12 @@ error_list = ["неисправен, не подключен или не отк�
               "пришла не корректная команда по шине CAN",
               "включен ручной режим обогрева "]
 
+# Setup 4th sort mountain
+
+list_of_buks: list[str] = ['009', '255', '238', '221']
+list_of_control_com: list[str] = ['getStatus\r\n',
+                                  'gPr\r\n', 'getDelta\r\n', 'getCount\r\n']
+
 # Just keys
 get_status_params = get_status_params_map.keys()
 get_count_params = get_count_params_map.keys()
@@ -54,8 +60,10 @@ get_delta_params = get_delta_params_map.keys()
 # Take the error varible and find the err from error_list
 
 # TODO: Make it works in send_command() from serial
+
+
 def check_err(string: str) -> list[str]:
-    tmp_err_lst:list[str] = []
+    tmp_err_lst: list[str] = []
     if int(string) == 0:
         return tmp_err_lst
     err = int(string)
@@ -68,9 +76,9 @@ def check_err(string: str) -> list[str]:
 # Parse get_status answer
 
 
-def parse_get_status(string: str) -> bool:
+def parse_get_status(string: str) -> bool | dict[str, str]:
     r_string = string.replace('=', ' ')
-    var:list[str] = r_string.split()
+    var: list[str] = r_string.split()
     if var:
         if var[0] == 'bmk' and var[len(var)-2] == 'cs':
             for i in var:
@@ -78,32 +86,32 @@ def parse_get_status(string: str) -> bool:
                     get_status_params_map[i] = var[var.index(i) + 1]
             if 'default' in get_status_params_map.values():
                 return False
-            return True
+            return get_status_params_map
     return False
 
 # Parse gPr answer
 
 
-def parse_gPr(string: str) -> bool:
+def parse_gPr(string: str) -> bool | dict[str, str]:
     r_string = string.replace('=', ' ')
-    var:list[str] = r_string.split()
+    var: list[str] = r_string.split()
     if var:
         if var[0] == 'bmk' and var[len(var)-2] == 'cs':
             for i in var:
-                for i in var:
-                    if i in gPr_params_map:
-                        if not var.index(i) == (len(var)-1):
-                            gPr_params_map[i] = var[var.index(i) + 1]
-                if 'default' in gPr_params_map.values():
-                    return False
-                return True
+                if i in gPr_params_map:
+                    if not var.index(i) == (len(var)-1):
+                        gPr_params_map[i] = var[var.index(i) + 1]
+            if 'default' in gPr_params_map.values():
+                return False
+            return gPr_params_map
     return False
 # Parse get_count answer
 
 
-def parse_get_count(string: str) -> bool:
+def parse_get_count(string: str) -> bool | dict[str, str]:
+    print(get_count_params)
     r_string = string.replace('=', ' ')
-    var:list[str] = r_string.split()
+    var: list[str] = r_string.split()
     if var:
         if var[0] == 'bmk' and var[len(var)-2] == 'cs':
             for i in var:
@@ -112,15 +120,15 @@ def parse_get_count(string: str) -> bool:
                         get_count_params_map[i] = var[var.index(i) + 1]
             if 'default' in get_count_params_map.values():
                 return False
-            return True
+            return get_count_params_map
     return False
 
 # Parse get_delta answer
 
 
-def parse_get_delta(string: str) -> bool:
+def parse_get_delta(string: str) -> bool | dict[str, str]:
     r_string = string.replace('=', ' ')
-    var:list[str] = r_string.split()
+    var: list[str] = r_string.split()
     if var:
         if var[0] == 'bmk' and var[len(var)-2] == 'cs':
             for i in var:
@@ -129,7 +137,7 @@ def parse_get_delta(string: str) -> bool:
                         get_delta_params_map[i] = var[var.index(i) + 1]
             if 'default' in get_delta_params_map.values():
                 return False
-            return True
+            return get_delta_params_map
     return False
 
 
@@ -142,17 +150,17 @@ def parse_settings_commans(str: str) -> bool:
 # Collaboration of all the commands
 
 
-def parse_com_str(str: str, last_command: str) -> bool:
-    str = str.decode(encoding='utf-8', errors='ignore')
-    if 'incorrect command' in str:
+def parse_com_str(string_b: bytes, last_command: str) -> bool | dict[str, str]:
+    string = string_b.decode(encoding='utf-8', errors='ignore')
+    if 'incorrect command' in string:
         return False
-    elif last_command == 'get_status':
-        return parse_get_status(str)
-    elif last_command == 'gPr':
-        return parse_gPr(str)
-    elif last_command == 'get_count':
-        return parse_get_count(str)
-    elif last_command == 'get_delta':
-        return parse_get_delta(str)
+    elif last_command == 'getStatus\r\n':
+        return parse_get_status(string)
+    elif last_command == 'gPr\r\n':
+        return parse_gPr(string)
+    elif last_command == 'getDelta\r\n':
+        return parse_get_delta(string)
+    elif last_command == 'getCount\r\n':
+        return parse_get_count(string)
     else:
-        return parse_settings_commans(str)
+        return parse_settings_commans(string)

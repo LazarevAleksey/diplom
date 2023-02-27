@@ -5,50 +5,65 @@
 import dearpygui.dearpygui as dpg
 import backend.backend_parser as parser
 import backend.backend_serial as ser
-from threading import Thread
+from multiprocessing import Process, Queue
 
-def com_sending() -> None:
+
+# Sending commands to all buks (Process 1)
+
+def main_com_loop(q: Queue) -> None:
+    ser.PORT = ser.avilable_com()
     while True:
-        print(ser.send_command('007', 'getStatus'))
+        for buk_num in parser.list_of_buks:
+            for command in parser.list_of_control_com:
+                data = ser.send_command(buk_num, command)
+                q.put(data)
 
-def butn_callback() -> None:
-    print(parser.check_err(parser.get_status_params_map['Err']))
 
-def main_window() -> None:        
-    dpg.create_context()
-    dpg.create_viewport(title="VUP-15z", width=800, height=600)
-    dpg.setup_dearpygui()
-    with dpg.window(tag='main', label="Test arduino", width=300, height=600):
-        dpg.add_button(callback= butn_callback)
-        with dpg.table(tag='MT', header_row=False, width=300):
+win_pos: int = 0
+current_buks_list: list[str] = []
+
+
+def draw_window_table(params_dict: dict[str, str], w=300, h=600) -> None:
+    global win_pos
+    with dpg.window(tag=params_dict['bmk'], label=f"Num. {params_dict['bmk']}", width=w, height=h, pos=(win_pos, 0)):
+        with dpg.table(tag=f"MT_{params_dict['bmk']}", header_row=False, width=300):
             dpg.add_table_column()
             dpg.add_table_column()
-            for i in range(0, 25):
+            for i in range(0, len(params_dict.keys())):
                 with dpg.table_row():
-                    dpg.add_text(list(parser.get_status_params)[i])
-                    dpg.add_text(parser.get_status_params_map[list(
-                        parser.get_status_params)[i]])   
+                    dpg.add_text(list(params_dict)[i])
+                    dpg.add_text(params_dict[list(
+                        params_dict)[i]])
+    win_pos += w
+
+# Drow a new window_table if cacth a new buk in Process 1
+
+
+def show_data(q: Queue) -> None:
+    global current_buks_list
+    if not q.empty():
+        params_dict = q.get_nowait()
+        if params_dict:
+            current_buk = params_dict['bmk']
+            if not current_buk in current_buks_list:
+                current_buks_list.append(current_buk)
+                draw_window_table(params_dict)
+
+
+def main_window(q: Queue) -> None:
+    dpg.create_context()
+    dpg.create_viewport(title="VUP-15z", width=1980, height=1024)
+    dpg.setup_dearpygui()
     dpg.show_viewport()
     while dpg.is_dearpygui_running():
-        dpg.delete_item('MT')
-        with dpg.table(parent='main', tag='MT', header_row=False, width=300):
-            dpg.add_table_column()
-            dpg.add_table_column()
-            for i in range(0, 25):
-                with dpg.table_row(parent='MT', tag=f'row_{i}'):
-                    dpg.add_text(list(parser.get_status_params)[i])
-                    dpg.add_text(parser.get_status_params_map[list(
-                        parser.get_status_params)[i]])
+        show_data(q)
         dpg.render_dearpygui_frame()
     dpg.destroy_context()
 
 
-if __name__ == "__main__":
-    t1 = Thread(target= com_sending)
-    t2 = Thread(target= main_window)
-    t1.daemon = True
-    t2.daemon = True
-    t1.start()
-    t2.start()
-    while True:
-        pass
+if __name__ == '__main__':
+    q = Queue()
+    p1 = Process(target=main_com_loop, args=(q,))
+    p2 = Process(target=main_window, args=(q,))
+    p1.start()
+    p2.start()
