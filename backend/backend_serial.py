@@ -20,7 +20,6 @@ def avilable_com() -> str:
     # Check if there available com ports with BUK_NAME in it
     ports = serial.tools.list_ports.comports()
     for port, desc, hwid in sorted(ports):
-        print(ports)
         if BUK_DEV in desc:
             return str(port)
     return '0'
@@ -34,7 +33,7 @@ def send_command(buk_num: str, command: str) -> bool | dict[str, str]:
     # First, we send the command line to the com port, if the sending was 
     # successful, then we accept the line from the BMC. IMPORTANT! We use readln - 
     # a problematic function and as soon as garbage 
-    # appears in the wire, we will get into the eternal loop.
+    # appears in the wire, we will get into the eternal loop.b
     str_command = str.encode(commands_generator(buk_num, command))
     if PORT:
         with serial.Serial(PORT, BAUD, BYTE_SIZE, PARITY, STOP_BITS, timeout=0.5) as port:
