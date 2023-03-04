@@ -122,9 +122,10 @@ def main_com_loop(q: Queue) -> None:
                 data = ser.send_command(buk_num, command)
                 q.put(data)
 
-def draw_window_table(user_data:dict[str, str]) -> None:
-    print(user_data)
+def draw_window_table(sender:int, add_data:str ,user_data:dict[str, str]) -> None:
     bmk: str = user_data['bmk']
+    if dpg.does_item_exist(f"INFO:{bmk}"):
+        dpg.delete_item(f"INFO:{bmk}")
     with dpg.window(tag=f"INFO:{bmk}", label=f"Num. {bmk}", autosize= True):
         with dpg.table(tag=f"MT_{bmk}", header_row=False, width=300):
             dpg.add_table_column()
@@ -150,7 +151,7 @@ def show_data(q: Queue) -> None:
 def draw_bmk_window(params_dict: dict[str, str]) -> None:
     global win_pos
     bmk:str = params_dict['bmk']
-    if dpg.does_item_exist(bmk):
+    if dpg.does_item_exist(f"BMK:{bmk}"):
         dpg.delete_item(f"BMK:{bmk}")
     with dpg.window(label=f"BMK:{bmk}", pos= win_pos, no_background= False, no_resize=True, no_close=True, no_title_bar=True, autosize=True):
             dpg.add_button(label= "BMK INFO", tag=f"bmk_{bmk}", pos = (7, 20), callback=draw_window_table, user_data= params_dict)
