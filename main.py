@@ -6,11 +6,11 @@ import dearpygui.dearpygui as dpg
 import backend.backend_parser as parser
 import backend.backend_serial as ser
 from multiprocessing import Process, Queue
-
+import time
 # Setup 4th sort mountain
 win_pos: list[int] = [0, 25]
 current_buks_list: list[str] = []
-list_of_buks: list[str] = ['009', '255', '238', '221']
+list_of_bmk: dict[str, str] = {'009':'STP14' , '010':'STP13', '011':'STP12', '012':'STP11', '013':'STP10', '014':'STP22', '015':'STP09'}
 list_of_control_com: list[str] = ['getStatus\r\n',
                                   'gPr\r\n', 'getDelta\r\n', 'getCount\r\n']
 
@@ -114,51 +114,66 @@ def create_theme_imgui_light() -> int:
 
 
 def main_com_loop(q: Queue) -> None:
-    # Sending commands to all buks (Process 1)
     ser.PORT = ser.avilable_com()
-    while True:
-        for buk_num in list_of_buks:
-            for command in list_of_control_com:
-                data = ser.send_command(buk_num, command)
-                q.put(data)
+    commands_list:list[str] = []
+    with ser.serial.Serial(ser.PORT, ser.BAUD, ser.BYTE_SIZE, ser.PARITY, ser.STOP_BITS, timeout=0.3) as port:
+        while True:
+            for bmk in list_of_bmk.keys():
+                for command in list_of_control_com[:1]:
+                    commands_list.append(ser.commands_generator(bmk, command).encode())       
+                data = ser.send_command(commands_list, port)
+                print({'bmk': f'{bmk}', 'data': data})
+                q.put({'bmk': f'{bmk}', 'data': data})
+                commands_list = []
 
-def draw_window_table(sender:int, add_data:str ,user_data:dict[str, str]) -> None:
+
+def draw_window_table(sender:int, add_data:str ,user_data:dict[str, dict[str, str]]) -> None:
     bmk: str = user_data['bmk']
+    data_for_table = user_data['data']['getStatus\r\n']
     if dpg.does_item_exist(f"INFO:{bmk}"):
         dpg.delete_item(f"INFO:{bmk}")
     with dpg.window(tag=f"INFO:{bmk}", label=f"Num. {bmk}", autosize= True):
         with dpg.table(tag=f"MT_{bmk}", header_row=False, width=300):
             dpg.add_table_column()
             dpg.add_table_column()
-            for i in range(0, len(user_data.keys())):
+            for i in range(0, len(data_for_table.keys())):
                 with dpg.table_row():
-                    dpg.add_text(list(user_data)[i])
-                    dpg.add_text(user_data[list(
-                        user_data)[i]])
+                    dpg.add_text(list(data_for_table)[i])
+                    dpg.add_text(data_for_table[list(
+                        data_for_table)[i]])
 
 
-def show_data(q: Queue) -> None:
-    # Drow a new window_table if cacth a new buk in Process 1
+def show_bmk_windows(q: Queue) -> None:
     global current_buks_list
     if not q.empty():
         params_dict = q.get_nowait()
-        if params_dict:
-            current_buk = params_dict['bmk']
-            if not current_buk in current_buks_list:
-                current_buks_list.append(current_buk)
-                draw_bmk_window(params_dict)
+        current_bmk = params_dict['bmk']
+        if params_dict['data']['getStatus\r\n']:
+            if not current_bmk in current_buks_list:
+                current_buks_list.append(current_bmk)
+                redraw_bmk_window(params_dict)
 
-def draw_bmk_window(params_dict: dict[str, str]) -> None:
+
+
+def redraw_bmk_window(params_dict: dict[str, str]) -> None:
     global win_pos
     bmk:str = params_dict['bmk']
-    if dpg.does_item_exist(f"BMK:{bmk}"):
-        dpg.delete_item(f"BMK:{bmk}")
-    with dpg.window(label=f"BMK:{bmk}", pos= win_pos, no_background= False, no_resize=True, no_close=True, no_title_bar=True, autosize=True):
-            dpg.add_button(label= "BMK INFO", tag=f"bmk_{bmk}", pos = (7, 20), callback=draw_window_table, user_data= params_dict)
+    new_pos = dpg.get_item_pos(f"BMK:{bmk}")
+    dpg.delete_item(f"BMK:{bmk}")
+    with dpg.window(tag=f"BMK:{bmk}", pos= new_pos, no_background= False, no_resize=True, no_close=True, no_title_bar=True, autosize=True):
+        dpg.add_button(label= "BMK INFO", tag=f"bmk_{bmk}", pos = (7, 20), callback=draw_window_table, user_data= params_dict)
+        dpg.add_button(label= "ERRORS", tag = f"err_{bmk}", pos = (100, 20))
+        dpg.add_text(f"{list_of_bmk[bmk]}", pos= (60, 40))
+        dpg.draw_line(p1 = (0, 50), p2= (150, 50), thickness=3, color=(0, 0, 0, 255), tag=f'line_{bmk}')
+
+def draw_bmk_window_at_runtime() -> None:
+    for bmk in list_of_bmk.keys():
+        with dpg.window(tag=f"BMK:{bmk}", pos= win_pos, no_background= False, no_resize=True, no_close=True, no_title_bar=True, autosize=True):
+            dpg.add_button(label= "BMK INFO", tag=f"bmk_{bmk}", pos = (7, 20))
             dpg.add_button(label= "ERRORS", tag = f"err_{bmk}", pos = (100, 20))
-            dpg.add_text(f"bmk {bmk}", pos= (60, 40))
-            dpg.draw_line(p1 = (0, 50), p2= (150, 50), thickness=3, color=(0, 0, 0, 255))
-    win_pos[0] +=  150
+            dpg.add_text(f"{list_of_bmk[bmk]}", pos= (60, 40), tag=f'text_{bmk}')
+            dpg.draw_line(p1 = (0, 50), p2= (150, 50), thickness=3, color=(255, 255, 0, 255), tag =f'line_{bmk}')
+        win_pos[0] +=  150
 
 def main_window(q: Queue) -> None:
     dpg.create_context()
@@ -166,7 +181,7 @@ def main_window(q: Queue) -> None:
         with dpg.menu_bar():
             dpg.add_menu_item(label="Help")
             dpg.add_menu_item(label="About")
-            
+    draw_bmk_window_at_runtime()
     dpg.bind_theme(create_theme_imgui_light())
     dpg.set_primary_window("Main window", True)
 
@@ -176,7 +191,7 @@ def main_window(q: Queue) -> None:
     # dpg.show_style_editor()
 
     while dpg.is_dearpygui_running():
-        show_data(q)
+        show_bmk_windows(q)
         dpg.render_dearpygui_frame()
     dpg.destroy_context()
 
