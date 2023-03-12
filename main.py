@@ -184,6 +184,12 @@ def redraw_window_table(params:dict[str, dict[str, dict[str, str]]]) ->None:
                     dpg.add_text(data_for_table[list(
                         data_for_table)[i]])
 
+def draw_info_table(bmk:str, data_for_table:dict[str, str]) -> None:
+    for keys in data_for_table.keys():
+        with dpg.table_row(parent= f"INFO:{bmk}"):
+            dpg.add_text(keys)
+            # TODO: make it works! #
+            
 def show_bmk_windows(q: Queue) -> None:
     global current_buks_list
     if not q.empty():
@@ -194,14 +200,14 @@ def show_bmk_windows(q: Queue) -> None:
                 current_buks_list.append(current_bmk)
                 redraw_bmk_window(params_dict)
             redraw_window_table(params_dict)
-            print_real_time()
+        print_real_time()
 
 def redraw_bmk_window(params_dict: dict[str, dict[str, dict[str, str] ]]) -> None:
     global win_pos
     bmk:str = params_dict['bmk']
     new_pos = dpg.get_item_pos(f"BMK:{bmk}")
     dpg.delete_item(f"BMK:{bmk}")
-    with dpg.window(tag=f"BMK:{bmk}", pos= new_pos, no_background= False, no_resize=True, no_close=True, no_title_bar=True, autosize=True):
+    with dpg.window(tag=f"BMK:{bmk}", pos= new_pos, no_background= False, no_resize=True, no_close=True, no_title_bar=True, autosize=True, no_move=True):
         dpg.add_button(label= "BMK INFO", tag=f"bmk_{bmk}", pos = (7, 20), user_data = params_dict,callback=draw_window_table)
         dpg.add_button(label= "ERRORS", tag = f"err_{bmk}", pos = (100, 20))
         dpg.add_text(f"{list_of_bmk[bmk]}", pos= (65, 40))
@@ -211,7 +217,7 @@ def redraw_bmk_window(params_dict: dict[str, dict[str, dict[str, str] ]]) -> Non
 
 def draw_bmk_window_at_runtime() -> None:
     for bmk in list_of_bmk.keys():
-        with dpg.window(tag=f"BMK:{bmk}", pos= win_pos, no_background= False, no_resize=True, no_close=True, no_title_bar=True, autosize=True):
+        with dpg.window(tag=f"BMK:{bmk}", pos= win_pos, no_background= False, no_resize=True, no_close=True, no_title_bar=True, autosize=True, no_move=True, no_collapse=True):
             dpg.add_button(label= "BMK INFO", tag=f"bmk_{bmk}", pos = (7, 20), callback=draw_window_table)
             dpg.add_button(label= "ERRORS", tag = f"err_{bmk}", pos = (100, 20))
             dpg.add_text(f"{list_of_bmk[bmk]}", pos= (65, 40), tag=f'text_{bmk}')
@@ -268,7 +274,7 @@ def draw_scheme_at_run_time() -> None:
     
 def main_window(q: Queue) -> None:
     dpg.create_context()
-    with dpg.window(tag = "Main window"):
+    with dpg.window(tag = "Main window", no_scrollbar= True, no_focus_on_appearing=True, no_resize=True, no_move=True, min_size=(1024, 768), autosize=True):
         with dpg.menu_bar():
             dpg.add_menu_item(label="Help")
             dpg.add_menu_item(label="About")
@@ -277,7 +283,7 @@ def main_window(q: Queue) -> None:
     dpg.bind_theme(create_theme_imgui_light())
     dpg.set_primary_window("Main window", True)
 
-    dpg.create_viewport(title="VUP-15z", width=1024, height=768)
+    dpg.create_viewport(title="VUP-15z", width=1440, height=900, resizable= False)
     dpg.setup_dearpygui()
     dpg.show_viewport()
     # dpg.show_style_editor()
