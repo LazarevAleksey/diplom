@@ -6,16 +6,20 @@ import dearpygui.dearpygui as dpg
 import backend.backend_parser as parser
 import backend.backend_serial as ser
 from multiprocessing import Process, Queue
-
+import time
+import serial
+import random
+import datetime
 # Setup 4th sort mountain
-win_pos: list[int] = [0, 25]
+win_pos: list[int] = [400, 100]
 current_buks_list: list[str] = []
-list_of_buks: list[str] = ['009', '255', '238', '221']
+list_of_bmk: dict[str, str] = {'009':'STP5' , '010':'STP6', '011':'STP7', '012':'STP8', 
+                               '013':'STP9A', '014':'STP9', '015':'STP10', '016':'STP11A', 
+                               '017':'STP11', '018':'STP12', '020':'STP13', '021':'STP14'}
 list_of_control_com: list[str] = ['getStatus\r\n',
                                   'gPr\r\n', 'getDelta\r\n', 'getCount\r\n']
 
-def create_theme_imgui_light() -> int:
-
+def create_theme_imgui_light():
     with dpg.theme() as theme_id:
         with dpg.theme_component(0):
             dpg.add_theme_color(dpg.mvThemeCol_WindowBg               , (191, 191, 191, 255))
@@ -108,82 +112,185 @@ def create_theme_imgui_light() -> int:
             dpg.add_theme_color(dpg.mvNodeCol_BoxSelectorOutline, (90, 170, 250, 150), category=dpg.mvThemeCat_Nodes)
             dpg.add_theme_color(dpg.mvNodeCol_GridBackground, (225, 225, 225, 255), category=dpg.mvThemeCat_Nodes)
             dpg.add_theme_color(dpg.mvNodeCol_GridLine, (180, 180, 180, 100), category=dpg.mvThemeCat_Nodes)
-
     return theme_id
 
 
 
-def main_com_loop(q: Queue) -> None:
-    # Sending commands to all buks (Process 1)
-    ser.PORT = ser.avilable_com()
-    while True:
-        for buk_num in list_of_buks:
-            for command in list_of_control_com:
-                data = ser.send_command(buk_num, command)
-                q.put(data)
 
-def draw_window_table(sender:int, add_data:str ,user_data:dict[str, str]) -> None:
+
+def main_com_loop(q: Queue) -> None:
+    ser.PORT = ser.avilable_com()
+    commands_list:list[bytes] = []
+    with serial.Serial(ser.PORT, ser.BAUD, ser.BYTE_SIZE, ser.PARITY, ser.STOP_BITS, timeout=0.5) as port:
+        while True:
+            for bmk in list_of_bmk.keys():
+                for command in list_of_control_com[:1]:
+                    commands_list.append(ser.commands_generator(bmk, command).encode())       
+                data = ser.send_command(commands_list, port)
+                q.put({'bmk': f'{bmk}', 'data': data})
+                commands_list = []
+                
+dict_to_write:dict[str, bool | dict[str, str]] = {'getStatus\r\n': False}
+
+def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
+    for command in commands_list:
+        command_name = f'{command[8:]}'
+        bmk_num = f'{command[4:7]}'
+        if command_name == 'getStatus\r\n':
+            dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000000  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
+        q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
+        time.sleep(0.2)
+        commands_list = []
+    
+def bmk_emulator(q:Queue) -> None:
+    commands_list:list[str] = []
+    dict_to_write:dict[str, bool | dict[str, str]] = {'getStatus\r\n': False}
+    for bmk in list_of_bmk.keys():
+        for command in list_of_control_com[:1]:
+            commands_list.append(ser.commands_generator(bmk, command))    
+    while True:
+        create_dict_to_emulate_bmk(commands_list, q)
+                    
+                    
+
+
+def draw_window_table(sender:int, add_data:str ,user_data:dict[str, dict[str, dict[str, str]]]) -> None:
     bmk: str = user_data['bmk']
+    data_for_table = user_data['data']['getStatus\r\n']
     if dpg.does_item_exist(f"INFO:{bmk}"):
         dpg.delete_item(f"INFO:{bmk}")
     with dpg.window(tag=f"INFO:{bmk}", label=f"Num. {bmk}", autosize= True):
         with dpg.table(tag=f"MT_{bmk}", header_row=False, width=300):
             dpg.add_table_column()
             dpg.add_table_column()
-            for i in range(0, len(user_data.keys())):
+            for i in range(0, len(data_for_table.keys())):
                 with dpg.table_row():
-                    dpg.add_text(list(user_data)[i])
-                    dpg.add_text(user_data[list(
-                        user_data)[i]])
+                    dpg.add_text(list(data_for_table)[i])
+                    dpg.add_text(data_for_table[list(
+                        data_for_table)[i]])
 
+def redraw_window_table(params:dict[str, dict[str, dict[str, str]]]) ->None:
+    bmk: str = params['bmk']
+    data_for_table = params['data']['getStatus\r\n']
+    if dpg.does_item_exist(f"MT_{bmk}"):
+        dpg.delete_item(f"MT_{bmk}")
+    if dpg.does_item_exist(f"INFO:{bmk}"):
+        with dpg.table(parent = f"INFO:{bmk}", tag=f"MT_{bmk}", header_row=False, width=300):
+            dpg.add_table_column()
+            dpg.add_table_column()
+            for i in range(0, len(data_for_table.keys())):
+                with dpg.table_row():
+                    dpg.add_text(list(data_for_table)[i])
+                    dpg.add_text(data_for_table[list(
+                        data_for_table)[i]])
 
-def show_data(q: Queue) -> None:
-    # Drow a new window_table if cacth a new buk in Process 1
+def show_bmk_windows(q: Queue) -> None:
     global current_buks_list
     if not q.empty():
         params_dict = q.get_nowait()
-        if params_dict:
-            current_buk = params_dict['bmk']
-            if not current_buk in current_buks_list:
-                current_buks_list.append(current_buk)
-                draw_bmk_window(params_dict)
+        current_bmk = params_dict['bmk']
+        if params_dict['data']['getStatus\r\n']:
+            if not current_bmk in current_buks_list:
+                current_buks_list.append(current_bmk)
+                redraw_bmk_window(params_dict)
+            redraw_window_table(params_dict)
+            print_real_time()
 
-def draw_bmk_window(params_dict: dict[str, str]) -> None:
+def redraw_bmk_window(params_dict: dict[str, dict[str, dict[str, str] ]]) -> None:
     global win_pos
     bmk:str = params_dict['bmk']
-    if dpg.does_item_exist(f"BMK:{bmk}"):
-        dpg.delete_item(f"BMK:{bmk}")
-    with dpg.window(label=f"BMK:{bmk}", pos= win_pos, no_background= False, no_resize=True, no_close=True, no_title_bar=True, autosize=True):
-            dpg.add_button(label= "BMK INFO", tag=f"bmk_{bmk}", pos = (7, 20), callback=draw_window_table, user_data= params_dict)
-            dpg.add_button(label= "ERRORS", tag = f"err_{bmk}", pos = (100, 20))
-            dpg.add_text(f"bmk {bmk}", pos= (60, 40))
-            dpg.draw_line(p1 = (0, 50), p2= (150, 50), thickness=3, color=(0, 0, 0, 255))
-    win_pos[0] +=  150
+    new_pos = dpg.get_item_pos(f"BMK:{bmk}")
+    dpg.delete_item(f"BMK:{bmk}")
+    with dpg.window(tag=f"BMK:{bmk}", pos= new_pos, no_background= False, no_resize=True, no_close=True, no_title_bar=True, autosize=True):
+        dpg.add_button(label= "BMK INFO", tag=f"bmk_{bmk}", pos = (7, 20), user_data = params_dict,callback=draw_window_table)
+        dpg.add_button(label= "ERRORS", tag = f"err_{bmk}", pos = (100, 20))
+        dpg.add_text(f"{list_of_bmk[bmk]}", pos= (65, 40))
+        dpg.draw_line(p1 = (0, 50), p2= (150, 50), thickness=3, color=(0, 0, 0, 255), tag=f'line_{bmk}')
 
+
+
+def draw_bmk_window_at_runtime() -> None:
+    for bmk in list_of_bmk.keys():
+        with dpg.window(tag=f"BMK:{bmk}", pos= win_pos, no_background= False, no_resize=True, no_close=True, no_title_bar=True, autosize=True):
+            dpg.add_button(label= "BMK INFO", tag=f"bmk_{bmk}", pos = (7, 20), callback=draw_window_table)
+            dpg.add_button(label= "ERRORS", tag = f"err_{bmk}", pos = (100, 20))
+            dpg.add_text(f"{list_of_bmk[bmk]}", pos= (65, 40), tag=f'text_{bmk}')
+            dpg.draw_line(p1 = (0, 50), p2= (150, 50), thickness=3, color=(255, 0, 255, 255), tag =f'line_{bmk}')
+        win_pos[0] +=  150
+        current_index_bmk = (list(list_of_bmk.keys()).index(bmk) + 1)
+        if current_index_bmk == 2 or current_index_bmk == 4 or current_index_bmk == 7 or current_index_bmk == 10:
+            win_pos[1] += 100
+            win_pos[0] = 400
+
+def print_real_time() ->None:
+    c_t = datetime.datetime.now()
+    time_str = c_t.strftime("%H:%M:%S")
+    dpg.set_value(item="time_tag", value = time_str)
+
+def draw_scheme_at_run_time() -> None:
+    windows_bmk_pos:list[list[int]] = []
+    for bmk in list_of_bmk.keys():
+        windows_bmk_pos.append(dpg.get_item_pos(f"BMK:{bmk}"))
+    w, h, c, d = dpg.load_image('./post.png')
+    with dpg.texture_registry(show=False):
+        dpg.add_static_texture(width=w, height=h, default_value=d, tag="post_tag")
+    with dpg.window(tag=f"TIME", pos= (480, 84), no_background= True, no_resize=True, no_close=True, no_title_bar=True, autosize=False):    
+        dpg.add_text(tag = 'time_tag',pos=(10,0), default_value="TIME", color=(0, 0, 0, 255))
+    dpg.draw_line(parent = "Main window", p1= (470,70), p2 = (550,70), thickness=20, color=(int(0.70 * 255), int(1.00 * 255), int(0.70 * 255), int(1.00 * 255)))
+        
+    dpg.add_image(parent = "Main window", texture_tag='post_tag', pos=(350, 570), width=300, height=200)
+    dpg.add_text(parent= "Main window", pos=(180, 60), default_value="MOSCOW", color=(0, 255, 0, 255))
+    dpg.add_text(parent= "Main window", pos=(470, 60), default_value="STP 4 SORT-MOS", color=(0, 0, 0, 255))
+    dpg.draw_arrow(parent ="Main window", p1 = (100, 50), p2=(300, 50), thickness=3, color=(0, 255, 0, 255))
+    dpg.add_text(parent= "Main window", pos=(780, 60), default_value="SAINT-P", color= (0, 255, 0, 255))
+    dpg.draw_arrow(parent ="Main window", p1 = (900, 50), p2=(700, 50), thickness=3, color=(0, 255, 0, 255))
+    
+    dpg.add_text(parent= "Main window", pos=(190, windows_bmk_pos[2][1]-20), default_value="107SPU")
+    dpg.add_text(parent= "Main window", pos=(290, windows_bmk_pos[2][1] + 5), default_value="107")
+    dpg.draw_line(parent ="Main window", p1 = (100, windows_bmk_pos[2][1] - 25), p2=(300, windows_bmk_pos[2][1] - 25), thickness=3, color=(0, 0, 0, 255))
+    
+    dpg.add_text(parent= "Main window", pos=(120, windows_bmk_pos[7][1]-20), default_value="106-119SPU")
+    dpg.add_text(parent= "Main window", pos=(225, windows_bmk_pos[7][1]-20), default_value="119-120APU")
+    dpg.add_text(parent= "Main window", pos=(290, windows_bmk_pos[7][1] + 5 ), default_value="120")
+    dpg.add_text(parent= "Main window", pos=(180, windows_bmk_pos[7][1] + 5 ), default_value="119")
+    dpg.draw_line(parent ="Main window", p1 = (100, windows_bmk_pos[7][1] - 25), p2=(300, windows_bmk_pos[7][1] - 25), thickness=3, color=(0, 0, 0, 255))
+    
+    dpg.draw_line(parent ="Main window", p1 = (300, windows_bmk_pos[2][1] - 25), p2=(windows_bmk_pos[0][0], windows_bmk_pos[0][1]+30), thickness=3, color=(0, 0, 0, 255))
+    dpg.draw_line(parent ="Main window", p1 = (300, windows_bmk_pos[2][1] - 25), p2=(windows_bmk_pos[3][0], windows_bmk_pos[3][1]+125), thickness=3, color=(0, 0, 0, 255))
+    
+    dpg.draw_line(parent ="Main window", p1 = (300, windows_bmk_pos[7][1] - 25), p2=(windows_bmk_pos[4][0], windows_bmk_pos[4][1]+30), thickness=3, color=(0, 0, 0, 255))
+    dpg.draw_line(parent ="Main window", p1 = (300, windows_bmk_pos[7][1] - 25), p2=(windows_bmk_pos[7][0], windows_bmk_pos[7][1]+35), thickness=3, color=(0, 0, 0, 255))
+    dpg.draw_line(parent ="Main window", p1 = (190, windows_bmk_pos[7][1] - 25), p2=(windows_bmk_pos[10][0], windows_bmk_pos[10][1]+35), thickness=3, color=(0, 0, 0, 255))
+    for i in range(len(windows_bmk_pos)):
+        if i == 1 or i == 3 or i == 6 or i ==9 or i == 11:
+            dpg.draw_line(parent ="Main window", p1 = (600, windows_bmk_pos[i][1] + 31), p2=(900, windows_bmk_pos[i][1] + 31), thickness=3, color=(0, 0, 0, 255))
+    
+    
 def main_window(q: Queue) -> None:
     dpg.create_context()
     with dpg.window(tag = "Main window"):
         with dpg.menu_bar():
             dpg.add_menu_item(label="Help")
             dpg.add_menu_item(label="About")
-            
+    draw_bmk_window_at_runtime()
+    draw_scheme_at_run_time()
     dpg.bind_theme(create_theme_imgui_light())
     dpg.set_primary_window("Main window", True)
 
-    dpg.create_viewport(title="VUP-15z", width=1980, height=1024)
+    dpg.create_viewport(title="VUP-15z", width=1024, height=768)
     dpg.setup_dearpygui()
     dpg.show_viewport()
     # dpg.show_style_editor()
 
     while dpg.is_dearpygui_running():
-        show_data(q)
+        show_bmk_windows(q)
         dpg.render_dearpygui_frame()
     dpg.destroy_context()
 
 
 if __name__ == '__main__':
     q = Queue()
-    p1 = Process(target=main_com_loop, args=(q,))
+    p1 = Process(target=bmk_emulator, args=(q,))
     p2 = Process(target=main_window, args=(q,))
     p1.start()
     p2.start()
