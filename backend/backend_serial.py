@@ -15,7 +15,7 @@ STOP_BITS = 1
 ATTEMPTS = 3
 BUK_DEV = 'Arduino'
 
-dict_to_write:dict[str, str] = {'getStatus\r\n': False}
+dict_to_write:dict[str, bool | dict[str, str]] = {'getStatus\r\n': False}
 
 def avilable_com() -> str:
     # Check if there available com ports with BUK_NAME in it
@@ -30,15 +30,13 @@ def commands_generator(buk_num: str, command: str) -> str:
     return 'bmk:' + buk_num + ":" + command
 
 
-def send_command(command_list:str, port) -> dict[str, dict[str, str]]:
+def send_command(command_list:list[bytes], port:serial.Serial) -> dict[str, bool | dict[str, str]]:
     # IMPORTANT! We use readln - 
     # a problematic function and as soon as garbage 
     # appears in the wire, we will get into the eternal loop.
     for command in command_list:
         if port.write(command):
-            print(command)
             line = port.readline()
-            print(line)
             command_name = f'{command[8:].decode()}'
             dict_to_write[command_name] = parser.parse_com_str(line, command_name)
             if dict_to_write[command_name]:
