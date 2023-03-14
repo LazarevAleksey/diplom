@@ -133,25 +133,26 @@ def main_com_loop(q: Queue) -> None:
                 q.put({'bmk': f'{bmk}', 'data': data})
                 commands_list = []
                 
-dict_to_write:dict[str, bool | dict[str, str]] = {'getStatus\r\n': False}
 q_global = Queue()
 def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
+    dict_to_write:dict[str, bool | dict[str, str]] = {}
     for command in commands_list:
-        
         command_name = f'{command[8:]}'
         bmk_num = f'{command[4:7]}'
         if command_name =='getStatus\r\n':
             time.sleep(0.2)
             dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000000  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
             q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
-        if command_name =='gPr\r\n':
+            dict_to_write = {}
+        elif command_name =='gPr\r\n':
             time.sleep(0.2)
-            dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} pr0=000 pr1=000 pr2=000 er=00000000 bmkC=007 prC0=003 prC1=000 erC=00000000 cs=016".encode(), command_name)
+            dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} pr0={str(random.randrange(300,400))} pr1={str(random.randrange(200,400))} pr2=000 er=00000000 bmkC=007 prC0=003 prC1=000 erC=00000000 cs=016".encode(), command_name)
             q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
+            dict_to_write = {}
+        
 
-commands_list:list[str] = []    
 def bmk_emulator(q:Queue) -> None:
-    global commands_list
+    commands_list:list[str] = []    
     for bmk in list_of_bmk.keys():
         for command in list_of_control_com[:1]:
             commands_list.append(ser.commands_generator(bmk, command))    
@@ -164,10 +165,16 @@ def bmk_emulator(q:Queue) -> None:
 
 
 def draw_window_table(sender:int, add_data:str ,user_data:dict[str, dict[str, dict[str, str]]]) -> None:
+    # BUG: When callback is called - show ald data (maybe we need to change user data when getStatus is get)
     bmk: str = str(user_data['bmk'])
     data_for_table = user_data['data']['getStatus\r\n']
+    if not data_for_table:
+        return
     if dpg.does_item_exist(f"INFO:{bmk}"):
-        dpg.delete_item(f"INFO:{bmk}")
+        if dpg.is_item_visible(f"INFO:{bmk}"):
+            return
+        else:
+            dpg.delete_item(f"INFO:{bmk}")
     with dpg.window(tag=f"INFO:{bmk}", label=f"{list_of_bmk[bmk]}", autosize= True):
         with dpg.table(tag=f"MT_{bmk}", header_row=False, width=400):
             dpg.add_table_column()
@@ -177,8 +184,10 @@ def draw_window_table(sender:int, add_data:str ,user_data:dict[str, dict[str, di
 
 
 def redraw_window_table(params:dict[str, dict[str, dict[str, str]]]) ->None:
-    bmk: str = str(params['data']['getStatus\r\n']['bmk'])
+    bmk: str = str(params['bmk'])
     data_for_table = params['data']['getStatus\r\n']
+    if not data_for_table:
+        return
     if dpg.does_item_exist(f"MT_{bmk}"):
         dpg.delete_item(f"MT_{bmk}")
     if dpg.does_item_exist(f"INFO:{bmk}"):
@@ -305,17 +314,40 @@ def draw_info_table(bmk:str, data_for_table:dict[str, str]) -> None:
 def show_bmk_windows(q: Queue) -> None:
     if not q.empty():
         params_dict = q.get_nowait()
-        if params_dict['data']['getStatus\r\n']:
-            print(params_dict)
-            current_bmk = params_dict['data']['getStatus\r\n']['bmk']
-            if not current_bmk in current_buks_list:
-                current_buks_list.append(current_bmk)
-                redraw_bmk_window(params_dict)
-            redraw_window_table(params_dict)
+        current_bmk = params_dict['bmk']
+        #TODO: REMOVE TRY AND FIX THIS!
+        try:
+            if params_dict['data']['getStatus\r\n']:
+                if not current_bmk in current_buks_list:
+                    current_buks_list.append(current_bmk)
+                    redraw_bmk_window(params_dict)
+                redraw_window_table(params_dict)
+            else:
+                dpg.delete_item(f'line_{current_bmk}')
+                dpg.draw_line(parent =f"BMK:{current_bmk}", p1 = (0, 50), p2= (150, 50), thickness=3, color=(255, 0, 255, 255), tag =f'line_{current_bmk}')
+
+        except KeyError:
+            if params_dict['data']['gPr\r\n']:
+                redraw_pt_plot(params_dict['data']['gPr\r\n'])
+    print_real_time()
+i:int  = 0
+def redraw_pt_plot(data:dict[str, str]) -> None:
+    global i, list_for_plot_y1, list_for_plot_y2, list_for_plot_x
+    if dpg.does_item_exist("plot_win"):
+        if dpg.is_item_visible("plot_win"):
+            i += 1
+            # BUG: INF APPEND?!
+            list_for_plot_y1.append(int(data['pr0']))
+            list_for_plot_y2.append(int(data['pr1']))
+            list_for_plot_x.append(i*10)
+            dpg.set_value("series_tag1", [list_for_plot_x , list_for_plot_y1])
+            dpg.set_value("series_tag2", [list_for_plot_x, list_for_plot_y2])
         else:
-            dpg.delete_item(f'line_{current_bmk}')
-            dpg.draw_line(parent =f"BMK:{current_bmk}", p1 = (0, 50), p2= (150, 50), thickness=3, color=(255, 0, 255, 255), tag =f'line_{current_bmk}')
-        print_real_time()
+            list_for_plot_y1 = []
+            list_for_plot_y2 = []
+            list_for_plot_x = []
+            dpg.delete_item("plot_win")
+            i = 0
 
 def redraw_bmk_window(params_dict: dict[str, dict[str, dict[str, str] ]]) -> None:
     bmk:str = str(params_dict['bmk'])
@@ -389,7 +421,11 @@ def draw_scheme_at_run_time() -> None:
     
 def create_plot(sender:int, app_data:list[str]) -> None:
     if dpg.does_item_exist("plot_win"):
-        dpg.delete_item("plot_win")
+        if dpg.is_item_visible("plot_win"):
+            return
+        else:
+            dpg.delete_item("plot_win")
+
     current_bmk:str = list_of_bmk[app_data[1][5:]]
     with dpg.window(label="", tag="plot_win", pos = (1000, 80), no_background=True, no_title_bar=False, no_resize=True):
         with dpg.plot(label=f"Давление датчика 1 и 2 {current_bmk}", height=400, width=400):
@@ -406,9 +442,8 @@ def create_plot(sender:int, app_data:list[str]) -> None:
     for bmk in list_of_bmk.keys():
         for command in list_of_control_com[:1]:
             commands_list.append(ser.commands_generator(bmk, command)) 
-    for i in range(len(commands_list)):
-        if i % 2 == 1:
-            commands_list.insert(i, f'bmk:{app_data[1][5:]}:gPr\r\n')
+    for i in range(1, len(commands_list)*2 , 2):
+        commands_list.insert(i, f'bmk:{app_data[1][5:]}:gPr\r\n')
     q_global.put(commands_list)
 
 
