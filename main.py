@@ -137,17 +137,17 @@ dict_to_write:dict[str, bool | dict[str, str]] = {'getStatus\r\n': False}
 q_global = Queue()
 def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
     for command in commands_list:
+        
         command_name = f'{command[8:]}'
         bmk_num = f'{command[4:7]}'
-        if command_name == 'getStatus\r\n':
-            print("Hello!")
+        if command_name =='getStatus\r\n':
             time.sleep(0.2)
             dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000000  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
+            q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
         if command_name =='gPr\r\n':
             time.sleep(0.2)
             dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} pr0=000 pr1=000 pr2=000 er=00000000 bmkC=007 prC0=003 prC1=000 erC=00000000 cs=016".encode(), command_name)
-        q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
-        print({'bmk': f'{bmk_num}', 'data': dict_to_write})
+            q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
 
 commands_list:list[str] = []    
 def bmk_emulator(q:Queue) -> None:
@@ -156,7 +156,6 @@ def bmk_emulator(q:Queue) -> None:
         for command in list_of_control_com[:1]:
             commands_list.append(ser.commands_generator(bmk, command))    
     while True:
-        print(commands_list)
         create_dict_to_emulate_bmk(commands_list, q)
         if not q_global.empty():
             commands_list = q_global.get_nowait()
@@ -178,7 +177,7 @@ def draw_window_table(sender:int, add_data:str ,user_data:dict[str, dict[str, di
 
 
 def redraw_window_table(params:dict[str, dict[str, dict[str, str]]]) ->None:
-    bmk: str = str(params['bmk'])
+    bmk: str = str(params['data']['getStatus\r\n']['bmk'])
     data_for_table = params['data']['getStatus\r\n']
     if dpg.does_item_exist(f"MT_{bmk}"):
         dpg.delete_item(f"MT_{bmk}")
@@ -307,7 +306,8 @@ def show_bmk_windows(q: Queue) -> None:
     if not q.empty():
         params_dict = q.get_nowait()
         if params_dict['data']['getStatus\r\n']:
-            current_bmk = params_dict['bmk']
+            print(params_dict)
+            current_bmk = params_dict['data']['getStatus\r\n']['bmk']
             if not current_bmk in current_buks_list:
                 current_buks_list.append(current_bmk)
                 redraw_bmk_window(params_dict)
@@ -408,7 +408,7 @@ def create_plot(sender:int, app_data:list[str]) -> None:
             commands_list.append(ser.commands_generator(bmk, command)) 
     for i in range(len(commands_list)):
         if i % 2 == 1:
-            commands_list.insert(i, f'bmk:{app_data[1][5:]}:gPr')
+            commands_list.insert(i, f'bmk:{app_data[1][5:]}:gPr\r\n')
     q_global.put(commands_list)
 
 
