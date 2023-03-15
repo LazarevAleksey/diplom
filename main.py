@@ -58,12 +58,6 @@ def draw_scheme_at_run_time() -> None:
         if i == 1 or i == 3 or i == 6 or i ==9 or i == 11:
             dpg.draw_line(parent ="Main window", p1 = (600, windows_bmk_pos[i][1] + 29), p2=(900, windows_bmk_pos[i][1] + 29), thickness=4, color=(0, 0, 0, 255))
     
-    
-
-
-
-
-
 def main_com_loop(q: Queue) -> None:
     ser.PORT = ser.avilable_com()
     commands_list:list[bytes] = []
