@@ -1,7 +1,6 @@
 # For GUI we chose dear pygui. For each of BUKs we made a different window, and show all
 # data in tables. For each of commands we made different button that callback
 # a function to create a context menu of command.
-# TODO: Plot borders
 # TODO: Counter of false data and repainting bmk window
 # TODO: Errors buttn
 # TODO: Logs buttn and menu for it
@@ -47,7 +46,6 @@ def draw_scheme_at_run_time() -> None:
     dpg.add_text(parent = "Main window", pos=(210, windows_bmk_pos[7][1] - 20), default_value = "119-120АПУ")
     dpg.add_text(parent = "Main window", pos=(290, windows_bmk_pos[7][1] + 5 ), default_value = "120")
     dpg.add_text(parent = "Main window", pos=(150, windows_bmk_pos[7][1] + 5 ), default_value = "119")
-
     dpg.draw_arrow(parent = "Main window", p1 = (100, 50), p2=(300, 50), thickness = 3, color=(0, 0, 0, 255))
     dpg.draw_arrow(parent = "Main window", p1 = (900, 50), p2=(700, 50), thickness = 3, color=(0, 0, 0, 255))
     dpg.draw_line(parent = "Main window", p1 = (90,  windows_bmk_pos[2][1] - 25), p2=(300, windows_bmk_pos[2][1] - 25), thickness = 4, color=(0, 0, 0, 255))
@@ -183,7 +181,7 @@ def redraw_bmk_window(params_dict: dict[str, dict[str, dict[str, str] ]]) -> Non
     bmk:str = str(params_dict['bmk'])
     new_pos = dpg.get_item_pos(f"BMK:{bmk}")
     dpg.delete_item(f"BMK:{bmk}")
-    with dpg.window(tag=f"BMK:{bmk}", pos= new_pos, no_background= False, no_resize=True, no_close=True, no_title_bar=True, autosize=True, no_move=True):
+    with dpg.window(tag=f"BMK:{bmk}", pos= new_pos, no_background= False, no_resize=False, no_close=True, no_title_bar=True, autosize=True, no_move=True):
         dpg.add_button(label= " ИНФ.", tag=f"bmk_{bmk}", pos = (7, 20), user_data = params_dict,callback=draw_window_table)
         dpg.add_button(label= "ОШИБ.", tag = f"err_{bmk}", pos = (100, 20))
         dpg.add_text(f"{list_of_bmk[bmk]}", pos= (60, 40), tag = f'text_{bmk}', user_data=f"{list_of_bmk[bmk]}")
@@ -231,19 +229,13 @@ def close_plot() -> None:
     q_global.put(commands_list)
 
 def create_plot(sender:int, app_data:list[str]) -> None:
-    with dpg.theme(tag = "ser1_theme"):
-        with dpg.theme_component(dpg.mvLineSeries):
-            dpg.add_theme_color(dpg.mvPlotCol_Line, (0, 255, 0), category= dpg.mvThemeCat_Plots)
-    with dpg.theme(tag = "ser2_theme"):
-        with dpg.theme_component(dpg.mvLineSeries):
-            dpg.add_theme_color(dpg.mvPlotCol_Line, (255, 0, 0), category= dpg.mvThemeCat_Plots)
     if dpg.does_item_exist("plot_win"):
         if dpg.is_item_visible("plot_win"):
             return
         else:
             dpg.delete_item("plot_win")
     current_bmk:str = list_of_bmk[app_data[1][5:]]
-    with dpg.window(label="", tag="plot_win", pos = (950, 80), no_background=True, no_title_bar=False, no_resize=True, on_close= close_plot):
+    with dpg.window(label="", tag="plot_win", pos = (950, 80), no_background=True, no_title_bar=False, no_resize=True, on_close= close_plot, no_move=True):
         with dpg.plot(label=f"Давление датчика 1 и 2 {current_bmk}", height=450, width=450):
             dpg.add_plot_legend()
             dpg.add_plot_axis(dpg.mvXAxis, label="x", tag="x_axis")
@@ -267,16 +259,27 @@ def main_window(q: Queue) -> None:
     dpg.create_context()
     with dpg.item_handler_registry(tag = "plot_callback"):
         dpg.add_item_clicked_handler(callback=create_plot)
-    with dpg.window(tag = "Main window", no_scrollbar= True, no_focus_on_appearing=False, no_resize=False, no_move=True, min_size=(1024, 768), autosize=False):
+    with dpg.window(tag = "Main window", no_scrollbar= True, no_focus_on_appearing=False, no_resize=True, no_move=True, min_size=(1024, 768), autosize=False):
         with dpg.menu_bar():
             dpg.add_menu_item(label="Настйроки")
             dpg.add_menu_item(label="Помощь")
-            dpg.add_menu_item(label="О программе")
+            with dpg.menu(label="О программе"):
+                dpg.add_text(default_value="""Разработано в ЦКЖТ в 2023 году
+Разработчик Волков Егор Алексеевич 
+По всем вопросам обращаться по адресу: gole00201@gmail.com
+Исходный код доступен в репозитории: www.github.com\gole00201\diplom""")
     draw_bmk_window_at_runtime()
     draw_scheme_at_run_time()
     dpg.bind_theme(create_theme_imgui_light())
     dpg.set_primary_window("Main window", True)
-    dpg.create_viewport(title="VUP-15z", width=1440, height=900, resizable= False)
+    dpg.create_viewport(title="STP ARS-4", width=1440, height=900, resizable= False)
+    with dpg.theme(tag = "ser1_theme"):
+        with dpg.theme_component(dpg.mvLineSeries):
+            dpg.add_theme_color(dpg.mvPlotCol_Line, (0, 255, 0), category= dpg.mvThemeCat_Plots)
+    with dpg.theme(tag = "ser2_theme"):
+        with dpg.theme_component(dpg.mvLineSeries):
+            dpg.add_theme_color(dpg.mvPlotCol_Line, (255, 0, 0), category= dpg.mvThemeCat_Plots)
+
     with dpg.font_registry():
         with dpg.font("./fonts/Cousine-Bold.ttf", 15, default_font=True, tag='Main_font'):
             dpg.add_font_range_hint(dpg.mvFontRangeHint_Cyrillic)
@@ -294,7 +297,7 @@ def main_window(q: Queue) -> None:
     dpg.setup_dearpygui()
     dpg.show_viewport()
     # dpg.show_style_editor()
-
+    # dpg.show_metrics()
     while dpg.is_dearpygui_running():
         show_bmk_windows(q)
         dpg.render_dearpygui_frame()
