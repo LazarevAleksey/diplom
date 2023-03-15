@@ -194,7 +194,7 @@ def create_theme_imgui_light():
             dpg.add_theme_color(dpg.mvThemeCol_NavWindowingHighlight  , (int(0.70 * 255), int(0.70 * 255), int(0.70 * 255), int(0.70 * 255)))
             dpg.add_theme_color(dpg.mvThemeCol_NavWindowingDimBg      , (int(0.20 * 255), int(0.20 * 255), int(0.20 * 255), int(0.20 * 255)))
             dpg.add_theme_color(dpg.mvThemeCol_ModalWindowDimBg       , (int(0.20 * 255), int(0.20 * 255), int(0.20 * 255), int(0.35 * 255)))
-            dpg.add_theme_color(dpg.mvPlotCol_FrameBg       , (int(1.00 * 255), int(1.00 * 255), int(1.00 * 255), int(1.00 * 255)), category=dpg.mvThemeCat_Plots)
+            dpg.add_theme_color(dpg.mvPlotCol_FrameBg       , (191, 191, 191, int(1.00 * 255)), category=dpg.mvThemeCat_Plots)
             dpg.add_theme_color(dpg.mvPlotCol_PlotBg        , (int(0.0 * 255), int(0.0 * 255), int(0.00 * 255), int(1 * 255)), category=dpg.mvThemeCat_Plots)
             dpg.add_theme_color(dpg.mvPlotCol_PlotBorder    , (int(0.00 * 255), int(0.00 * 255), int(0.00 * 255), int(0.00 * 255)), category=dpg.mvThemeCat_Plots)
             dpg.add_theme_color(dpg.mvPlotCol_LegendBg      , (int(0.00 * 255), int(0.00 * 255), int(0.00 * 255), int(0 * 255)), category=dpg.mvThemeCat_Plots)

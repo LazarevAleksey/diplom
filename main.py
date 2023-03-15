@@ -78,7 +78,7 @@ def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
         bmk_num = f'{command[4:7]}'
         if command_name =='getStatus\r\n':
             time.sleep(0.2)
-            dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000000  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
+            dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
             q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
             dict_to_write = {}
         elif command_name =='gPr\r\n':
@@ -296,7 +296,7 @@ def create_plot(sender:int, app_data:list[str]) -> None:
         else:
             dpg.delete_item("plot_win")
     current_bmk:str = list_of_bmk[app_data[1][5:]]
-    with dpg.window(label="", tag="plot_win", pos = (950, 80), no_background=True, no_title_bar=False, no_resize=True, on_close= close_plot, no_move=True):
+    with dpg.window(label=f"Показатели давления на {current_bmk}", tag="plot_win", pos = (950, 80), no_background=False, no_title_bar=False, no_resize=True, on_close= close_plot, no_move=True):
         with dpg.plot(label=f"Давление датчика 1 и 2 {current_bmk}", height=450, width=450):
             dpg.add_plot_legend()
             dpg.add_plot_axis(dpg.mvXAxis, label="Счетчик", tag="x_axis")
