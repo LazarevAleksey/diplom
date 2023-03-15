@@ -1,8 +1,11 @@
 # For GUI we chose dear pygui. For each of BUKs we made a different window, and show all
 # data in tables. For each of commands we made different button that callback
 # a function to create a context menu of command.
-
-
+# TODO: Plot borders
+# TODO: Counter of false data and repainting bmk window
+# TODO: Errors buttn
+# TODO: Logs buttn and menu for it
+# TODO: Paint stp text if hovered by mouse
 import backend.backend_parser as parser
 import backend.backend_serial as ser
 from gui.callbacks import *
@@ -163,6 +166,12 @@ def redraw_pt_plot(data:dict[str, str]) -> None:
             list_for_plot_x.append(i*10)
             dpg.set_value("series_tag1", [list_for_plot_x , list_for_plot_y1])
             dpg.set_value("series_tag2", [list_for_plot_x, list_for_plot_y2])
+            # dpg.fit_axis_data("y_axis")
+            dpg.fit_axis_data("x_axis")
+            if i > 40:
+                list_for_plot_y1.pop(0)
+                list_for_plot_y2.pop(0)
+                list_for_plot_x.pop(0)
         else:
             list_for_plot_y1 = []
             list_for_plot_y2 = []
@@ -222,20 +231,29 @@ def close_plot() -> None:
     q_global.put(commands_list)
 
 def create_plot(sender:int, app_data:list[str]) -> None:
+    with dpg.theme(tag = "ser1_theme"):
+        with dpg.theme_component(dpg.mvLineSeries):
+            dpg.add_theme_color(dpg.mvPlotCol_Line, (0, 255, 0), category= dpg.mvThemeCat_Plots)
+    with dpg.theme(tag = "ser2_theme"):
+        with dpg.theme_component(dpg.mvLineSeries):
+            dpg.add_theme_color(dpg.mvPlotCol_Line, (255, 0, 0), category= dpg.mvThemeCat_Plots)
     if dpg.does_item_exist("plot_win"):
         if dpg.is_item_visible("plot_win"):
             return
         else:
             dpg.delete_item("plot_win")
-
     current_bmk:str = list_of_bmk[app_data[1][5:]]
     with dpg.window(label="", tag="plot_win", pos = (950, 80), no_background=True, no_title_bar=False, no_resize=True, on_close= close_plot):
         with dpg.plot(label=f"Давление датчика 1 и 2 {current_bmk}", height=450, width=450):
             dpg.add_plot_legend()
-            dpg.add_plot_axis(dpg.mvXAxis, label="x")
+            dpg.add_plot_axis(dpg.mvXAxis, label="x", tag="x_axis")
             dpg.add_plot_axis(dpg.mvYAxis, label="y", tag="y_axis")
             dpg.add_line_series(list_for_plot_x, list_for_plot_y1, label=f"Давление датчика 1 {current_bmk}", parent="y_axis", tag="series_tag1")
             dpg.add_line_series(list_for_plot_x, list_for_plot_y2, label=f"Давление датчика 2 {current_bmk}", parent="y_axis", tag="series_tag2")
+            dpg.set_axis_limits("y_axis", 0, 500)
+            dpg.bind_item_theme("series_tag1", "ser1_theme")
+            dpg.bind_item_theme("series_tag2", "ser2_theme")
+            # dpg.set_axis_limits("x_axis", 100, 400)
     commands_list:list[str] = []
     for bmk in list_of_bmk.keys():
         for command in list_of_control_com[:1]:
@@ -253,6 +271,7 @@ def main_window(q: Queue) -> None:
         with dpg.menu_bar():
             dpg.add_menu_item(label="Настйроки")
             dpg.add_menu_item(label="Помощь")
+            dpg.add_menu_item(label="О программе")
     draw_bmk_window_at_runtime()
     draw_scheme_at_run_time()
     dpg.bind_theme(create_theme_imgui_light())
