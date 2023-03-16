@@ -72,26 +72,23 @@ def main_com_loop(q: Queue) -> None:
                 commands_list = []
                 
 q_global = Queue()
-cnt:int = 0
+
 def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
-    global cnt
     dict_to_write:dict[str, bool | dict[str, str]] = {}
     for command in commands_list:
-        cnt += 1
         command_name = f'{command[8:]}'
         bmk_num = f'{command[4:7]}'
-        if command_name =='getStatus\r\n':
-            time.sleep(0.2)
-            if cnt > 20 and cnt < 24:
-                dict_to_write[f'{command_name}'] = parser.parse_com_str(f"={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
-                q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
-            else:
-                dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
-                q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
+        if command == 'bmk:009:getStatus\r\n':
+            time.sleep(0.2)            
+            dict_to_write[f'{command_name}'] = parser.parse_com_str(f"={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
+            q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
             dict_to_write = {}
-        if cnt > 24:
-            cnt = 0
-        
+            continue
+        if command_name =='getStatus\r\n':
+            time.sleep(0.2)            
+            dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
+            q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
+            dict_to_write = {}
         elif command_name =='gPr\r\n':
             time.sleep(0.2)
             dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} pr0={str(random.randrange(300,400))} pr1={str(random.randrange(200,400))} pr2=000 er=00000000 bmkC=007 prC0=003 prC1=000 erC=00000000 cs=016".encode(), command_name)
@@ -125,7 +122,7 @@ def show_bmk_windows(q: Queue) -> None:
                         dpg.set_value(f"line_err{current_bmk}", True)
                     dpg.set_item_user_data(f"err_{current_bmk}", params_dict)
                 else:
-                    if dpg.get_value(f"line_err{current_bmk}"):
+                    if dpg.get_value(f"line_err{current_bmk}"):   
                         dpg.set_value(f"line_err{current_bmk}", False)
                 redraw_window_table(params_dict)
                 dpg.set_item_user_data(f"bmk_{current_bmk}", params_dict)
@@ -148,14 +145,15 @@ def find_false(current_bmk:str, current_buks_list:list[str]) -> list[str]:
     dpg.set_item_callback(f'bmk_{current_bmk}', callback= None)
     dpg.set_item_callback(f'err_{current_bmk}', callback= None)
     dpg.bind_item_handler_registry(f'text_{current_bmk}', None)
-    current_buks_list.pop(current_buks_list.index(current_bmk))
+    if current_bmk in current_buks_list:
+        current_buks_list.pop(current_buks_list.index(current_bmk))
     return current_buks_list
 
 
 
 def blick_line_if_error() -> None:
     if dpg.get_value("cnt") == 0 or dpg.get_value("cnt") == 30:
-        for bmk in list_of_bmk.keys():
+        for bmk in current_buks_list:
             if dpg.get_value(f"line_err{bmk}"):
                 if dpg.get_value(f"line_cnt{bmk}"):
                     dpg.set_value(f"line_cnt{bmk}", False)
@@ -255,14 +253,13 @@ def redraw_pr_plot(data:dict[str, str]) -> None:
 
 def redraw_bmk_window(params_dict: dict[str, dict[str, dict[str, str] ]]) -> None:
     bmk:str = str(params_dict['bmk'])
-    new_pos = dpg.get_item_pos(f"BMK:{bmk}")
-    dpg.delete_item(f"BMK:{bmk}")
-    with dpg.window(tag=f"BMK:{bmk}", pos= new_pos, no_background= True, no_resize=True, no_close=True, no_title_bar=True, autosize=True, no_move=True):
-        dpg.add_button(label= " ИНФ.", tag=f"bmk_{bmk}", pos = (7, 20), user_data = params_dict,callback=draw_window_table)
-        dpg.add_button(label= "ОШИБ.", tag = f"err_{bmk}", pos = (100, 20), user_data =params_dict, callback= err_callback)
-        dpg.add_text(f"{list_of_bmk[bmk]}", pos= (60, 40), tag = f'text_{bmk}', user_data=f"{list_of_bmk[bmk]}")
-        dpg.draw_line(p1 = (0, 50), p2= (150, 50), thickness=4, color=(0, 0, 0, 255), tag=f'line_{bmk}')
+    dpg.delete_item(f'line_{bmk}')
+    dpg.draw_line(parent =f"BMK:{bmk}", p1 = (0, 50), p2= (150, 50), thickness=4, color=(0, 0, 0, 255), tag =f'line_{bmk}')
+    dpg.set_item_callback(f'bmk_{bmk}', callback= draw_window_table)
+    dpg.set_item_callback(f'err_{bmk}', callback= err_callback)
     dpg.bind_item_handler_registry(f'text_{bmk}', "plot_callback")
+    dpg.set_item_user_data(f'bmk_{bmk}', params_dict)
+    dpg.set_item_user_data(f'err_{bmk}', params_dict)
 
 inf_pos:list[int] = [0 , 0]
 
@@ -386,7 +383,7 @@ def main_window(q: Queue) -> None:
     dpg.setup_dearpygui()
     dpg.show_viewport()
     # dpg.show_style_editor()
-    # dpg.show_metrics()
+    dpg.show_metrics()
     while dpg.is_dearpygui_running():
         show_bmk_windows(q)
         dpg.render_dearpygui_frame()
