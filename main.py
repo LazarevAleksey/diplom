@@ -4,6 +4,7 @@
 # TODO: Counter of false data and repainting bmk window
 # TODO: Logs buttn and menu for it
 # TODO: Paint stp text if hovered by mouse
+# TODO: Settings commands
 import backend.backend_parser as parser
 import backend.backend_serial as ser
 from gui.callbacks import *
@@ -71,16 +72,26 @@ def main_com_loop(q: Queue) -> None:
                 commands_list = []
                 
 q_global = Queue()
+cnt:int = 0
 def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
+    global cnt
     dict_to_write:dict[str, bool | dict[str, str]] = {}
     for command in commands_list:
+        cnt += 1
         command_name = f'{command[8:]}'
         bmk_num = f'{command[4:7]}'
         if command_name =='getStatus\r\n':
             time.sleep(0.2)
-            dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
-            q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
+            if cnt > 20 and cnt < 24:
+                dict_to_write[f'{command_name}'] = parser.parse_com_str(f"={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
+                q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
+            else:
+                dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
+                q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
             dict_to_write = {}
+        if cnt > 24:
+            cnt = 0
+        
         elif command_name =='gPr\r\n':
             time.sleep(0.2)
             dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} pr0={str(random.randrange(300,400))} pr1={str(random.randrange(200,400))} pr2=000 er=00000000 bmkC=007 prC0=003 prC1=000 erC=00000000 cs=016".encode(), command_name)
@@ -89,7 +100,7 @@ def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
         
 
 def bmk_emulator(q:Queue) -> None:
-    commands_list:list[str] = []    
+    commands_list:list[str] = []   
     for bmk in list_of_bmk.keys():
         for command in list_of_control_com[:1]:
             commands_list.append(ser.commands_generator(bmk, command))    
@@ -99,6 +110,7 @@ def bmk_emulator(q:Queue) -> None:
             commands_list = q_global.get_nowait()
                         
 def show_bmk_windows(q: Queue) -> None:
+    global current_buks_list
     if not q.empty():
         params_dict = q.get_nowait()
         current_bmk = params_dict['bmk']
@@ -118,8 +130,7 @@ def show_bmk_windows(q: Queue) -> None:
                 redraw_window_table(params_dict)
                 dpg.set_item_user_data(f"bmk_{current_bmk}", params_dict)
             else:
-                dpg.delete_item(f'line_{current_bmk}')
-                dpg.draw_line(parent =f"BMK:{current_bmk}", p1 = (0, 50), p2= (150, 50), thickness=4, color=(255, 0, 255, 255), tag =f'line_{current_bmk}')
+                current_buks_list =  find_false(current_bmk, current_buks_list)
         except KeyError:
             if params_dict['data']['gPr\r\n']:
                 redraw_pr_plot(params_dict['data']['gPr\r\n'])
@@ -129,8 +140,21 @@ def show_bmk_windows(q: Queue) -> None:
     print_real_time()                    
     blick_line_if_error()
 
+def find_false(current_bmk:str, current_buks_list:list[str]) -> list[str]:
+    dpg.delete_item(f'line_{current_bmk}')
+    dpg.draw_line(parent =f"BMK:{current_bmk}", p1 = (0, 50), p2= (150, 50), thickness=4, color=(255, 0, 255, 255), tag =f'line_{current_bmk}')
+    if dpg.get_value(f"line_err{current_bmk}"):
+        dpg.set_value(f"line_err{current_bmk}", False)
+    dpg.set_item_callback(f'bmk_{current_bmk}', callback= None)
+    dpg.set_item_callback(f'err_{current_bmk}', callback= None)
+    dpg.bind_item_handler_registry(f'text_{current_bmk}', None)
+    current_buks_list.pop(current_buks_list.index(current_bmk))
+    return current_buks_list
+
+
+
 def blick_line_if_error() -> None:
-    if dpg.get_value("cnt") == 0 or dpg.get_value("cnt") == 60:
+    if dpg.get_value("cnt") == 0 or dpg.get_value("cnt") == 30:
         for bmk in list_of_bmk.keys():
             if dpg.get_value(f"line_err{bmk}"):
                 if dpg.get_value(f"line_cnt{bmk}"):
@@ -156,6 +180,8 @@ def close_err() -> None:
 def err_callback(sender:int, app_data:str, user_data:dict[str, str]) -> None:
     global err_pos
     bmk:str = user_data['bmk']
+    if not user_data['data']['getStatus\r\n']:
+        return
     err:str = user_data["data"]['getStatus\r\n']['Err']
     if dpg.does_item_exist(f"ERR:{bmk}"):
         if dpg.is_item_visible(f"ERR:{bmk}"):
@@ -209,7 +235,6 @@ def redraw_pr_plot(data:dict[str, str]) -> None:
     if dpg.does_item_exist("plot_win"):
         if dpg.is_item_visible("plot_win"):
             i += 1
-            # BUG: INF APPEND?!
             list_for_plot_y1.append(int(data['pr0']))
             list_for_plot_y2.append(int(data['pr1']))
             list_for_plot_x.append(i*10)
@@ -270,13 +295,13 @@ def draw_window_table(sender:int, add_data:str ,user_data:dict[str, dict[str, di
 def draw_bmk_window_at_runtime() -> None:
     for bmk in list_of_bmk.keys():
         with dpg.window(tag=f"BMK:{bmk}", pos= win_pos, no_background= True, no_resize=True, no_close=True, no_title_bar=True, autosize=True, no_move=True, no_collapse=True):
-            dpg.add_button(label= " ИНФ.", tag=f"bmk_{bmk}", pos = (7, 20), callback=draw_window_table)
+            dpg.add_button(label= " ИНФ.", tag=f"bmk_{bmk}", pos = (7, 20))
             dpg.add_button(label= "ОШИБ.", tag = f"err_{bmk}", pos = (100, 20))
             dpg.add_text(f"{list_of_bmk[bmk]}", pos= (60, 40), tag=f'text_{bmk}', user_data=f"{list_of_bmk[bmk]}")
             dpg.draw_line(p1 = (0, 50), p2= (150, 50), thickness=4, color=(255, 0, 255, 255), tag =f'line_{bmk}')
         win_pos[0] +=  150
         current_index_bmk = (list(list_of_bmk.keys()).index(bmk) + 1)
-        dpg.bind_item_handler_registry(f'text_{bmk}', "plot_callback")
+        # dpg.bind_item_handler_registry(f'text_{bmk}', "plot_callback")
         if current_index_bmk == 2 or current_index_bmk == 4 or current_index_bmk == 7 or current_index_bmk == 10:
             win_pos[1] += 100
             win_pos[0] = 400
