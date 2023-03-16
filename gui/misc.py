@@ -58,52 +58,52 @@ def state_l(s:str) ->str:
 def draw_info_table(bmk:str, data_for_table:dict[str, str]) -> None:
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("БМК:")
-        dpg.add_text(int(data_for_table[list(data_for_table)[0]]), tag=f"row{bmk}_{0}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[0]])), tag=f"row{bmk}_{0}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("БМКC:")
-        dpg.add_text(int(data_for_table[list(data_for_table)[1]]), tag=f"row{bmk}_{1}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[1]])), tag=f"row{bmk}_{1}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("БМКCК:")
-        dpg.add_text(int(data_for_table[list(data_for_table)[2]]), tag=f"row{bmk}_{2}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[2]])), tag=f"row{bmk}_{2}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Давление (кПа):")
-        dpg.add_text(int(data_for_table[list(data_for_table)[3]]), tag=f"row{bmk}_{3}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[3]])), tag=f"row{bmk}_{3}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Давление 0 (кПа):")
-        dpg.add_text(int(data_for_table[list(data_for_table)[4]]), tag=f"row{bmk}_{4}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[4]])), tag=f"row{bmk}_{4}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Температура: 1")
-        dpg.add_text(str(data_for_table[list(data_for_table)[6]])[0] + str(data_for_table[list(data_for_table)[6]])[1:-1] +'.'+str(data_for_table[list(data_for_table)[6]])[3:], tag=f"row{bmk}_{6}")
+        dpg.add_text(str(data_for_table[list(data_for_table)[6]])[0] + str(data_for_table[list(data_for_table)[6]])[1:-1] +'.'+ data_for_table[list(data_for_table)[6]][3:], tag=f"row{bmk}_{6}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Давление ступени 0,5 (кПа):")
-        dpg.add_text(int(data_for_table[list(data_for_table)[7]]), tag=f"row{bmk}_{7}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[7]])), tag=f"row{bmk}_{7}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Давление ступени 1,0 (кПа):")
-        dpg.add_text(int(data_for_table[list(data_for_table)[8]]), tag=f"row{bmk}_{8}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[8]])), tag=f"row{bmk}_{8}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Давление ступени 1,5 (кПа):")
-        dpg.add_text(int(data_for_table[list(data_for_table)[9]]), tag=f"row{bmk}_{9}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[9]])), tag=f"row{bmk}_{9}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Давление ступени 2,0 (кПа):")
-        dpg.add_text(int(data_for_table[list(data_for_table)[10]]), tag=f"row{bmk}_{10}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[10]])), tag=f"row{bmk}_{10}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Давление ступени 2,5 (кПа):")
-        dpg.add_text(int(data_for_table[list(data_for_table)[11]]), tag=f"row{bmk}_{11}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[11]])), tag=f"row{bmk}_{11}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Давление ступени 3,0 (кПа):")
-        dpg.add_text(int(data_for_table[list(data_for_table)[12]]), tag=f"row{bmk}_{12}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[12]])), tag=f"row{bmk}_{12}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Давление ступени 3,5 (кПа):")
-        dpg.add_text(int(data_for_table[list(data_for_table)[13]]), tag=f"row{bmk}_{13}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[13]])), tag=f"row{bmk}_{13}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Напряжение питания:")
-        dpg.add_text(str(int(data_for_table[list(data_for_table)[15]])) + "B", tag=f"row{bmk}_{15}")
+        dpg.add_text(str(str(int(data_for_table[list(data_for_table)[15]]))) + "B", tag=f"row{bmk}_{15}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Температура для вкл. обогрева:")
-        dpg.add_text(data_for_table[list(data_for_table)[16]][0] + str(int(data_for_table[list(data_for_table)[16]][1:])), tag=f"row{bmk}_{16}")
+        dpg.add_text(data_for_table[list(data_for_table)[16]][0] + str(str(data_for_table[list(data_for_table)[16]])[1:]), tag=f"row{bmk}_{16}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Время работы (C):")
-        dpg.add_text(int(data_for_table[list(data_for_table)[17]]), tag=f"row{bmk}_{17}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[17]])), tag=f"row{bmk}_{17}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Калибровка первого датчика:")
         dpg.add_text(data_for_table[list(data_for_table)[18]], tag=f"row{bmk}_{18}")
@@ -121,7 +121,7 @@ def draw_info_table(bmk:str, data_for_table:dict[str, str]) -> None:
         dpg.add_text(data_for_table[list(data_for_table)[22]][0] + str(data_for_table[list(data_for_table)[22]])[1:-1] +'.'+str(data_for_table[list(data_for_table)[22]])[3:], tag=f"row{bmk}_{22}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Общее время работы (Часы):")
-        dpg.add_text(int(data_for_table[list(data_for_table)[23]]), tag=f"row{bmk}_{23}")
+        dpg.add_text(str(int(data_for_table[list(data_for_table)[23]])), tag=f"row{bmk}_{23}")
     
 
 

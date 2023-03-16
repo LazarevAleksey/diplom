@@ -5,9 +5,10 @@
 # TODO: Logs buttn and menu for it
 # TODO: Paint stp text if hovered by mouse
 # TODO: Settings commands
+import dearpygui.dearpygui as dpg
 import backend.backend_parser as parser
 import backend.backend_serial as ser
-from gui.callbacks import *
+from gui.misc import *
 from multiprocessing import Process, Queue
 import time
 import serial
@@ -59,18 +60,6 @@ def draw_scheme_at_run_time() -> None:
         if i == 1 or i == 3 or i == 6 or i ==9 or i == 11:
             dpg.draw_line(parent ="Main window", p1 = (400, windows_bmk_pos[i][1] + 29), p2=(900, windows_bmk_pos[i][1] + 29), thickness=4, color=(0, 0, 0, 255))
     
-def main_com_loop(q: Queue) -> None:
-    ser.PORT = ser.avilable_com()
-    commands_list:list[bytes] = []
-    with serial.Serial(ser.PORT, ser.BAUD, ser.BYTE_SIZE, ser.PARITY, ser.STOP_BITS, timeout=0.5) as port:
-        while True:
-            for bmk in list_of_bmk.keys():
-                for command in list_of_control_com[:4]:
-                    commands_list.append(ser.commands_generator(bmk, command).encode())       
-                data = ser.send_command(commands_list, port)
-                q.put({'bmk': f'{bmk}', 'data': data})
-                commands_list = []
-                
 q_global = Queue()
 cnt:int = 0
 def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
@@ -79,14 +68,12 @@ def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
     for command in commands_list:
         command_name = f'{command[8:]}'
         bmk_num = f'{command[4:7]}'
-        
         if command == 'bmk:009:getStatus\r\n':
             cnt += 1
             if cnt > 5 and cnt < 7:
                 dict_to_write[f'{command_name}'] = parser.parse_com_str(f"={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
                 q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
                 dict_to_write = {}
-            
             else:
                 time.sleep(0.2)            
                 dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
@@ -95,14 +82,12 @@ def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
             if cnt > 10:
                 cnt = 0
             continue
-        
         if command == 'bmk:012:getStatus\r\n':
             cnt += 1
             if cnt > 5 and cnt < 7:
                 dict_to_write[f'{command_name}'] = parser.parse_com_str(f"={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
                 q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
                 dict_to_write = {}
-            
             else:
                 time.sleep(0.2)            
                 dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
@@ -111,27 +96,42 @@ def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
             if cnt > 10:
                 cnt = 0
             continue
-
-
         if command == 'bmk:010:getStatus\r\n':
             time.sleep(0.2)            
             dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
             q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
             dict_to_write = {}
             continue
-        
         if command_name =='getStatus\r\n':
             time.sleep(0.2)            
             dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000000  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
             q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
             dict_to_write = {}
-        
         elif command_name =='gPr\r\n':
             time.sleep(0.2)
             dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} pr0={str(random.randrange(300,400))} pr1={str(random.randrange(200,400))} pr2=000 er=00000000 bmkC=007 prC0=003 prC1=000 erC=00000000 cs=016".encode(), command_name)
             q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
             dict_to_write = {}
         
+def main_com_loop(q: Queue) -> None:
+    ser.PORT = ser.avilable_com()
+    commands_list:list[bytes] = []   
+    for bmk in list_of_bmk.keys():
+        for command in list_of_control_com[:1]:
+            commands_list.append(ser.commands_generator(bmk, command).encode()) 
+    with serial.Serial(ser.PORT, ser.BAUD, ser.BYTE_SIZE, ser.PARITY, ser.STOP_BITS, timeout=0.5) as port:
+        while True:
+            sending_commands_loop(commands_list, q, port)
+            if not q_global.empty():
+                commands_list = q_global.get_nowait()
+            
+
+def sending_commands_loop(commands_list:list[bytes], q:Queue, port:serial.Serial) -> None:
+    dict_to_write:dict[str, bool | dict[str, str]] = {}
+    for command in commands_list:
+        bmk_num = f'{command[4:7].decode()}'
+        # print({'bmk' : bmk_num, 'data' : ser.send_command(command.decode(), port)})
+        q.put({'bmk' : bmk_num, 'data' : ser.send_command(command.decode(), port)})
 
 def bmk_emulator(q:Queue) -> None:
     commands_list:list[str] = []   
@@ -168,7 +168,7 @@ def show_bmk_windows(q: Queue) -> None:
     blick_line_if_error(current_buks_list)                   
 
 
-def manage_error_in_get_status(current_bmk:str, params_dict:dict[str, str]) -> None:
+def manage_error_in_get_status(current_bmk:str, params_dict:dict[str, dict[str, dict[str, str]]]) -> None:
     if int(params_dict['data']['getStatus\r\n']['Err']):
         if not dpg.get_value(f"line_err{current_bmk}"):
             dpg.set_value(f"line_err{current_bmk}", True)
@@ -177,16 +177,17 @@ def manage_error_in_get_status(current_bmk:str, params_dict:dict[str, str]) -> N
         if dpg.get_value(f"line_err{current_bmk}"):   
             dpg.set_value(f"line_err{current_bmk}", False)
 
-
+def enpty_callback() -> None:
+    pass
 
 def find_false(current_bmk:str, current_buks_list:list[str]) -> list[str]:
     dpg.delete_item(f'line_{current_bmk}')
     dpg.draw_line(parent =f"BMK:{current_bmk}", p1 = (0, 50), p2= (150, 50), thickness=4, color=(255, 0, 255, 255), tag =f'line_{current_bmk}')
     if dpg.get_value(f"line_err{current_bmk}"):
         dpg.set_value(f"line_err{current_bmk}", False)
-    dpg.set_item_callback(f'bmk_{current_bmk}', callback= None)
-    dpg.set_item_callback(f'err_{current_bmk}', callback= None)
-    dpg.bind_item_handler_registry(f'text_{current_bmk}', None)
+    dpg.set_item_callback(f'bmk_{current_bmk}', callback= enpty_callback)
+    dpg.set_item_callback(f'err_{current_bmk}', callback= enpty_callback)
+    dpg.bind_item_handler_registry(f'text_{current_bmk}', "empty")
     if current_bmk in current_buks_list:
         current_buks_list.pop(current_buks_list.index(current_bmk))
     return current_buks_list
@@ -217,7 +218,7 @@ def close_err() -> None:
     err_pos = [800, 700]
 
 
-def err_callback(sender:int, app_data:str, user_data:dict[str, str]) -> None:
+def err_callback(sender:int, app_data:str, user_data:dict[str, dict[str, dict[str, str]]]) -> None:
     global err_pos
     bmk:str = user_data['bmk']
     if not user_data['data']['getStatus\r\n']:
@@ -371,12 +372,12 @@ def create_plot(sender:int, app_data:list[str]) -> None:
             dpg.bind_item_theme("series_tag1", "ser1_theme")
             dpg.bind_item_theme("series_tag2", "ser2_theme")
             # dpg.set_axis_limits("x_axis", 100, 400)
-    commands_list:list[str] = []
+    commands_list:list[bytes] = []
     for bmk in list_of_bmk.keys():
         for command in list_of_control_com[:1]:
-            commands_list.append(ser.commands_generator(bmk, command)) 
+            commands_list.append(ser.commands_generator(bmk, command).encode()) 
     for i in range(1, len(commands_list)*2 , 2):
-        commands_list.insert(i, f'bmk:{app_data[1][5:]}:gPr\r\n')
+        commands_list.insert(i, f'bmk:{app_data[1][5:]}:gPr\r\n'.encode())
     q_global.put(commands_list)
 
 
@@ -384,6 +385,8 @@ def main_window(q: Queue) -> None:
     dpg.create_context()
     with dpg.item_handler_registry(tag = "plot_callback"):
         dpg.add_item_clicked_handler(callback=create_plot)
+    with dpg.item_handler_registry(tag = "empty"):
+        dpg.add_item_clicked_handler(callback=enpty_callback)
     with dpg.window(tag = "Main window", no_scrollbar= True, no_focus_on_appearing=False, no_resize=True, no_move=True, min_size=(1024, 768), autosize=False):
         with dpg.menu_bar():
             dpg.add_menu_item(label="Настйроки")
@@ -425,7 +428,7 @@ def main_window(q: Queue) -> None:
     dpg.setup_dearpygui()
     dpg.show_viewport()
     # dpg.show_style_editor()
-    # dpg.show_metrics()
+    dpg.show_metrics()
     while dpg.is_dearpygui_running():
         print_real_time() 
         show_bmk_windows(q)
@@ -435,7 +438,7 @@ def main_window(q: Queue) -> None:
 
 if __name__ == '__main__':
     q = Queue()
-    p1 = Process(target=bmk_emulator, args=(q,))
+    p1 = Process(target=main_com_loop, args=(q,))
     p2 = Process(target=main_window, args=(q,))
     p1.start()
     p2.start()
