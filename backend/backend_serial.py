@@ -37,7 +37,9 @@ def send_command(command:str, port:serial.Serial) -> dict[str, bool | dict[str, 
     dict_to_write:dict[str, bool | dict[str, str]] = {}
     for _ in range(ATTEMPTS):
         if port.write(command.encode()):
+            # s_t = time.time()
             line = port.readline()
+            # print(f"Time for read 175b :{time.time() - s_t}")
             command_name = f'{command[8:]}'
             dict_to_write[command_name] = parser.parse_com_str(line, command_name)
             if dict_to_write[command_name]:

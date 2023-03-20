@@ -1,9 +1,7 @@
 # For GUI we chose dear pygui. For each of BUKs we made a different window, and show all
 # data in tables. For each of commands we made different button that callback
 # a function to create a context menu of command.
-# TODO: Counter of false data and repainting bmk window
 # TODO: Logs buttn and menu for it
-# TODO: Paint stp text if hovered by mouse
 # TODO: Settings commands
 import dearpygui.dearpygui as dpg
 import backend.backend_parser as parser
@@ -62,13 +60,15 @@ def draw_scheme_at_run_time() -> None:
     
 q_global = Queue()
 cnt:int = 0
-def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
+def create_dict_to_emulate_bmk(commands_list:list[bytes], q:Queue) -> None:
     dict_to_write:dict[str, bool | dict[str, str]] = {}
+    print(commands_list)
     global cnt
     for command in commands_list:
-        command_name = f'{command[8:]}'
-        bmk_num = f'{command[4:7]}'
-        if command == 'bmk:009:getStatus\r\n':
+        command_name = f'{command[8:].decode()}'
+        bmk_num = f'{command[4:7].decode()}'
+        print(command)
+        if command == 'bmk:009:getStatus\r\n'.encode():
             cnt += 1
             if cnt > 5 and cnt < 7:
                 dict_to_write[f'{command_name}'] = parser.parse_com_str(f"={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
@@ -82,7 +82,7 @@ def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
             if cnt > 10:
                 cnt = 0
             continue
-        if command == 'bmk:012:getStatus\r\n':
+        if command == 'bmk:012:getStatus\r\n'.encode():
             cnt += 1
             if cnt > 5 and cnt < 7:
                 dict_to_write[f'{command_name}'] = parser.parse_com_str(f"={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
@@ -96,7 +96,7 @@ def create_dict_to_emulate_bmk(commands_list:list[str], q:Queue) -> None:
             if cnt > 10:
                 cnt = 0
             continue
-        if command == 'bmk:010:getStatus\r\n':
+        if command == 'bmk:010:getStatus\r\n'.encode():
             time.sleep(0.2)            
             dict_to_write[f'{command_name}'] = parser.parse_com_str(f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
             q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
@@ -124,6 +124,7 @@ def main_com_loop(q: Queue) -> None:
             sending_commands_loop(commands_list, q, port)
             if not q_global.empty():
                 commands_list = q_global.get_nowait()
+
             
 
 def sending_commands_loop(commands_list:list[bytes], q:Queue, port:serial.Serial) -> None:
@@ -137,12 +138,12 @@ def bmk_emulator(q:Queue) -> None:
     commands_list:list[str] = []   
     for bmk in list_of_bmk.keys():
         for command in list_of_control_com[:1]:
-            commands_list.append(ser.commands_generator(bmk, command))    
+            commands_list.append(ser.commands_generator(bmk, command).encode())    
     while True:
         create_dict_to_emulate_bmk(commands_list, q)
         if not q_global.empty():
             commands_list = q_global.get_nowait()
-                        
+            
 def show_bmk_windows(q: Queue) -> None:
     global current_buks_list
     if not q.empty():
@@ -165,7 +166,16 @@ def show_bmk_windows(q: Queue) -> None:
             else:
                 dpg.delete_item(f'line_{current_bmk}')
                 dpg.draw_line(parent =f"BMK:{current_bmk}", p1 = (0, 50), p2= (150, 50), thickness=4, color=(255, 0, 255, 255), tag =f'line_{current_bmk}')
-    blick_line_if_error(current_buks_list)                   
+    blick_line_if_error(current_buks_list)        
+    if_text_is_hovered()           
+
+
+def if_text_is_hovered():
+    for bmk in list_of_bmk.keys():
+        if dpg.is_item_hovered(f'text_{bmk}'):
+            dpg.bind_item_theme(f'text_{bmk}', 'text_hovered')
+        else:
+            dpg.bind_item_theme(f'text_{bmk}', 'text_is_not_hovered')
 
 
 def manage_error_in_get_status(current_bmk:str, params_dict:dict[str, dict[str, dict[str, str]]]) -> None:
@@ -177,16 +187,18 @@ def manage_error_in_get_status(current_bmk:str, params_dict:dict[str, dict[str, 
         if dpg.get_value(f"line_err{current_bmk}"):   
             dpg.set_value(f"line_err{current_bmk}", False)
 
-def enpty_callback() -> None:
+def empty_callback() -> None:
     pass
 
 def find_false(current_bmk:str, current_buks_list:list[str]) -> list[str]:
-    dpg.delete_item(f'line_{current_bmk}')
-    dpg.draw_line(parent =f"BMK:{current_bmk}", p1 = (0, 50), p2= (150, 50), thickness=4, color=(255, 0, 255, 255), tag =f'line_{current_bmk}')
+    # dpg.delete_item(f'line_{current_bmk}')
+    # dpg.draw_line(parent =f"BMK:{current_bmk}", p1 = (0, 50), p2= (150, 50), thickness=4, color=(255, 0, 255, 255), tag =f'line_{current_bmk}')
+    dpg.delete_item(f'line_bmk_{current_bmk}')
+    dpg.draw_line(parent =f"BMK:{current_bmk}", p1 = (55, 60), p2= (90, 60), thickness=10, color=(255, 0, 255, 255), tag =f'line_bmk_{current_bmk}')
     if dpg.get_value(f"line_err{current_bmk}"):
         dpg.set_value(f"line_err{current_bmk}", False)
-    dpg.set_item_callback(f'bmk_{current_bmk}', callback= enpty_callback)
-    dpg.set_item_callback(f'err_{current_bmk}', callback= enpty_callback)
+    dpg.set_item_callback(f'bmk_{current_bmk}', callback= empty_callback)
+    dpg.set_item_callback(f'err_{current_bmk}', callback= empty_callback)
     dpg.bind_item_handler_registry(f'text_{current_bmk}', "empty")
     if current_bmk in current_buks_list:
         current_buks_list.pop(current_buks_list.index(current_bmk))
@@ -198,13 +210,13 @@ def blick_line_if_error(current_buks_list:list[str]) -> None:
     if dpg.get_value("cnt") == 60:
         for bmk in current_buks_list:
             if dpg.get_value(f"line_err{bmk}"):
-                dpg.delete_item(f'line_{bmk}')
-                dpg.draw_line(parent =f"BMK:{bmk}", p1 = (0, 50), p2= (150, 50), thickness=4, color=(255, 0, 0, 255), tag =f'line_{bmk}')
+                dpg.delete_item(f'line_bmk_{bmk}')
+                dpg.draw_line(parent =f"BMK:{bmk}", p1 = (55, 60), p2= (90, 60), thickness=10, color=(255, 0, 0, 255), tag =f'line_bmk_{bmk}')
     if dpg.get_value("cnt") == 120: 
         for bmk in current_buks_list:
             if dpg.get_value(f"line_err{bmk}"):
-                dpg.delete_item(f'line_{bmk}')
-                dpg.draw_line(parent =f"BMK:{bmk}", p1 = (0, 50), p2= (150, 50), thickness=4, color=(0, 0, 0, 255), tag =f'line_{bmk}')
+                dpg.delete_item(f'line_bmk_{bmk}')
+                dpg.draw_line(parent =f"BMK:{bmk}", p1 = (55, 60), p2= (90, 60), thickness=10, color=(0, 0, 255, 255), tag =f'line_bmk_{bmk}')
     
     dpg.set_value("cnt", dpg.get_value('cnt') + 1)
     if dpg.get_value('cnt') > 120:
@@ -298,17 +310,19 @@ def redraw_bmk_window(params_dict: dict[str, dict[str, dict[str, str] ]]) -> Non
     bmk:str = str(params_dict['bmk'])
     dpg.delete_item(f'line_{bmk}')
     dpg.draw_line(parent =f"BMK:{bmk}", p1 = (0, 50), p2= (150, 50), thickness=4, color=(0, 0, 0, 255), tag =f'line_{bmk}')
+    dpg.delete_item(f'line_bmk_{bmk}')
+    dpg.draw_line(parent =f"BMK:{bmk}", p1 = (55, 60), p2= (90, 60), thickness=10, color=(0, 0, 255, 255), tag =f'line_bmk_{bmk}')
     dpg.set_item_callback(f'bmk_{bmk}', callback= draw_window_table)
     dpg.set_item_callback(f'err_{bmk}', callback= err_callback)
     dpg.bind_item_handler_registry(f'text_{bmk}', "plot_callback")
     dpg.set_item_user_data(f'bmk_{bmk}', params_dict)
     dpg.set_item_user_data(f'err_{bmk}', params_dict)
 
-inf_pos:list[int] = [0 , 0]
+inf_pos:list[int] = [0 , 20]
 
 def close_inf() -> None:
     global inf_pos
-    inf_pos = [0 , 0]
+    inf_pos = [0 , 20]
 def draw_window_table(sender:int, add_data:str ,user_data:dict[str, dict[str, dict[str, str]]]) -> None:
     global inf_pos
     bmk: str = str(user_data['bmk'])
@@ -327,9 +341,9 @@ def draw_window_table(sender:int, add_data:str ,user_data:dict[str, dict[str, di
             draw_info_table(bmk, data_for_table)
         inf_pos[0] += 50
         inf_pos[1] += 50
-        if inf_pos[0] == 300 and inf_pos[1] == 300:
+        if inf_pos[0] == 300 and inf_pos[1] == 320:
             inf_pos[0] = 0
-            inf_pos[1] = 0
+            inf_pos[1] = 20
     dpg.bind_item_font(f"INFO:{bmk}", 'table_font')
 
 def draw_bmk_window_at_runtime() -> None:
@@ -338,7 +352,8 @@ def draw_bmk_window_at_runtime() -> None:
             dpg.add_button(label= " ИНФ.", tag=f"bmk_{bmk}", pos = (7, 20))
             dpg.add_button(label= "ОШИБ.", tag = f"err_{bmk}", pos = (100, 20))
             dpg.add_text(f"{list_of_bmk[bmk]}", pos= (60, 40), tag=f'text_{bmk}', user_data=f"{list_of_bmk[bmk]}")
-            dpg.draw_line(p1 = (0, 50), p2= (150, 50), thickness=4, color=(255, 0, 255, 255), tag =f'line_{bmk}')
+            dpg.draw_line(p1 = (0, 50), p2= (150, 50), thickness=4, color=(0, 0, 0, 255), tag =f'line_{bmk}')
+            dpg.draw_line(p1 = (55, 60), p2= (90, 60), thickness=10, color=(255, 0, 255, 255), tag =f'line_bmk_{bmk}')
         win_pos[0] +=  150
         current_index_bmk = (list(list_of_bmk.keys()).index(bmk) + 1)
         # dpg.bind_item_handler_registry(f'text_{bmk}', "plot_callback")
@@ -348,10 +363,10 @@ def draw_bmk_window_at_runtime() -> None:
 
 
 def close_plot() -> None:
-    commands_list:list[str] = []
+    commands_list:list[bytes] = []
     for bmk in list_of_bmk.keys():
         for command in list_of_control_com[:1]:
-            commands_list.append(ser.commands_generator(bmk, command)) 
+            commands_list.append(ser.commands_generator(bmk, command).encode()) 
     q_global.put(commands_list)
 
 def create_plot(sender:int, app_data:list[str]) -> None:
@@ -381,36 +396,58 @@ def create_plot(sender:int, app_data:list[str]) -> None:
     q_global.put(commands_list)
 
 
+
 def main_window(q: Queue) -> None:
     dpg.create_context()
     with dpg.item_handler_registry(tag = "plot_callback"):
         dpg.add_item_clicked_handler(callback=create_plot)
+    
     with dpg.item_handler_registry(tag = "empty"):
-        dpg.add_item_clicked_handler(callback=enpty_callback)
+        dpg.add_item_clicked_handler(callback=empty_callback)
+    
     with dpg.window(tag = "Main window", no_scrollbar= True, no_focus_on_appearing=False, no_resize=True, no_move=True, min_size=(1024, 768), autosize=False):
         with dpg.menu_bar():
-            dpg.add_menu_item(label="Настйроки")
+            with dpg.menu(label="Настроить БМК"):
+                for bmk in list_of_bmk.keys():
+                    with dpg.menu(label = f'Настроить {list_of_bmk[bmk]}'):
+                        dpg.add_button(label="Установить темепературу включения подогрева")
+                        dpg.add_button(label ="Установить давление по ступеням")
+                        dpg.add_button(label ="Установить колибровачные значения дла датчиков давления")
+            
             dpg.add_menu_item(label="Помощь")
             with dpg.menu(label="О программе"):
                 dpg.add_text(default_value="""Разработано в ЦКЖТ в 2023 году
 Разработчик Волков Егор Алексеевич 
 По всем вопросам обращаться по адресу: gole00201@gmail.com""")
+    
     draw_bmk_window_at_runtime()
     draw_scheme_at_run_time()
+    
     dpg.bind_theme(create_theme_imgui_light())
+    
+    with dpg.theme(tag='text_hovered'):
+        with dpg.theme_component(0):
+            dpg.add_theme_color(dpg.mvThemeCol_Text, (127, 127, 127, int(1.00 * 255)))
+    with dpg.theme(tag = 'text_is_not_hovered'):
+        with dpg.theme_component(0):
+            dpg.add_theme_color(dpg.mvThemeCol_Text, (int(0.00 * 255), 0, int(0.00 * 255), int(1.00 * 255)))
+    
     dpg.set_primary_window("Main window", True)
     dpg.create_viewport(title="STP ARS-4", width=1440, height=900, resizable= False)
+    
     with dpg.value_registry():
         for bmk in list_of_bmk.keys():
             dpg.add_bool_value(tag = f"line_err{bmk}", default_value= False)
             dpg.add_bool_value(tag = f"line_cnt{bmk}", default_value= True)
         dpg.add_int_value(tag = f"cnt", default_value= - 120)
+    
     with dpg.theme(tag = "ser1_theme"):
         with dpg.theme_component(dpg.mvLineSeries):
             dpg.add_theme_color(dpg.mvPlotCol_Line, (0, 255, 0), category= dpg.mvThemeCat_Plots)
     with dpg.theme(tag = "ser2_theme"):
         with dpg.theme_component(dpg.mvLineSeries):
             dpg.add_theme_color(dpg.mvPlotCol_Line, (255, 0, 0), category= dpg.mvThemeCat_Plots)
+    
     with dpg.font_registry():
         with dpg.font("./fonts/Cousine-Bold.ttf", 15, default_font=True, tag='Main_font'):
             dpg.add_font_range_hint(dpg.mvFontRangeHint_Cyrillic)
@@ -428,7 +465,7 @@ def main_window(q: Queue) -> None:
     dpg.setup_dearpygui()
     dpg.show_viewport()
     # dpg.show_style_editor()
-    dpg.show_metrics()
+    # dpg.show_metrics()
     while dpg.is_dearpygui_running():
         print_real_time() 
         show_bmk_windows(q)
@@ -438,7 +475,7 @@ def main_window(q: Queue) -> None:
 
 if __name__ == '__main__':
     q = Queue()
-    p1 = Process(target=main_com_loop, args=(q,))
+    p1 = Process(target=bmk_emulator, args=(q,))
     p2 = Process(target=main_window, args=(q,))
     p1.start()
     p2.start()
