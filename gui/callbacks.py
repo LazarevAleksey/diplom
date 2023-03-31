@@ -2,7 +2,7 @@ import dearpygui.dearpygui as dpg
 import backend.backend_parser as parser
 import backend.backend_serial as ser
 from multiprocessing import Queue
-from .misc import *
+from stp_conf.load_json import *
 
 
 err_pos: list[int] = [800, 700]
@@ -72,7 +72,7 @@ def draw_window_table(sender: int, add_data: str, user_data: dict[str, dict[str,
 list_for_plot_x: list[float] = []
 list_for_plot_y1: list[float] = []
 list_for_plot_y2: list[float] = []
-win_pos: list[int] = [400, 100]
+
 current_buks_list: list[str] = []
 
 

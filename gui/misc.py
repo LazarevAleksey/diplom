@@ -2,15 +2,6 @@ import dearpygui.dearpygui as dpg
 import datetime
 
 
-list_of_bmk: dict[str, str] = {'009':'СТП 5' , '010':'СТП 6', '011':'СТП 7', '012':'СТП 8', 
-                               '013':'СТП 9A', '014':'СТП 9', '015':'СТП 10', '016':'СТП 11A', 
-                               '017':'СТП 11', '018':'СТП 12', '020':'СТП 13', '021':'СТП 14'}
-
-list_of_control_com: list[str] = ['getStatus\r\n',
-                                  'gPr\r\n', 'getDelta\r\n', 'getCount\r\n']
-
-
-
 def styp_torm(styp:str) ->str:
     if styp == '00':
         return "Нет ступени"

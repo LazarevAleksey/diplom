@@ -6,10 +6,10 @@
 import dearpygui.dearpygui as dpg
 import backend.backend_parser as parser
 import backend.backend_serial as ser
+from stp_conf.load_json import *
 from gui.misc import *
 from gui.callbacks import *
 from gui.draw_scheme_stp import *
-
 from multiprocessing import Process, Queue, Value
 import time
 import serial
@@ -117,7 +117,6 @@ def show_bmk_windows(q: Queue) -> None:
     if not q.empty():
         params_dict = q.get_nowait()
         current_bmk = params_dict['bmk']
-        # TODO: REMOVE TRY AND FIX THIS!
         try:
             if params_dict['data']['getStatus\r\n']:
                 if not current_bmk in current_buks_list:
@@ -149,8 +148,6 @@ def manage_error_in_get_status(current_bmk: str, params_dict: dict[str, dict[str
 
 
 def find_false(current_bmk: str, current_buks_list: list[str]) -> list[str]:
-    # dpg.delete_item(f'line_{current_bmk}')
-    # dpg.draw_line(parent =f"BMK:{current_bmk}", p1 = (0, 50), p2= (150, 50), thickness=4, color=(255, 0, 255, 255), tag =f'line_{current_bmk}')
     dpg.delete_item(f'line_bmk_{current_bmk}')
     dpg.draw_line(parent=f"BMK:{current_bmk}", p1=(75, 65), p2=(
         110, 65), thickness=10, color=(255, 0, 255, 255), tag=f'line_bmk_{current_bmk}')
@@ -159,7 +156,6 @@ def find_false(current_bmk: str, current_buks_list: list[str]) -> list[str]:
     dpg.set_item_callback(f'bmk_{current_bmk}', callback=empty_callback)
     dpg.set_item_callback(f'err_{current_bmk}', callback=empty_callback)
     dpg.set_item_callback(f'pr_{current_bmk}', callback=empty_callback)
-    # dpg.bind_item_handler_registry(f'text_{current_bmk}', "empty")
     if current_bmk in current_buks_list:
         current_buks_list.pop(current_buks_list.index(current_bmk))
     return current_buks_list
@@ -220,8 +216,6 @@ def redraw_window_table(params: dict[str, dict[str, dict[str, str]]]) -> None:
 
 
 i: int = 0
-
-
 def redraw_pr_plot(data: dict[str, str]) -> None:
     global i, list_for_plot_y1, list_for_plot_y2, list_for_plot_x
     if dpg.does_item_exist("plot_win"):
@@ -229,7 +223,7 @@ def redraw_pr_plot(data: dict[str, str]) -> None:
             i += 1
             list_for_plot_y1.append(int(data['pr0']))
             list_for_plot_y2.append(int(data['pr1']))
-            list_for_plot_x.append(i*10)
+            list_for_plot_x.append(i)
             dpg.set_value("series_tag1", [list_for_plot_x, list_for_plot_y1])
             dpg.set_value("series_tag2", [list_for_plot_x, list_for_plot_y2])
             # dpg.fit_axis_data("y_axis")
@@ -259,27 +253,6 @@ def redraw_bmk_window(params_dict: dict[str, dict[str, dict[str, str]]]) -> None
     dpg.set_item_callback(f'pr_{bmk}', callback=create_plot)
     dpg.set_item_user_data(f'bmk_{bmk}', params_dict)
     dpg.set_item_user_data(f'err_{bmk}', params_dict)
-
-
-def draw_bmk_window_at_runtime(q_task: Queue) -> None:
-    for bmk in list_of_bmk.keys():
-        with dpg.window(tag=f"BMK:{bmk}", pos=win_pos, no_background=True, no_resize=True, no_close=True, no_title_bar=True, autosize=True, no_move=True, no_collapse=True):
-            dpg.add_button(label=" ИНФ.", tag=f"bmk_{bmk}", pos=(7, 18))
-            dpg.add_button(
-                label="ДАВЛ.", tag=f'pr_{bmk}', user_data=q_task, pos=(70, 18))
-            dpg.add_button(label="ОШИБ.", tag=f"err_{bmk}", pos=(133, 18))
-            dpg.add_text(f"{list_of_bmk[bmk]}",
-                         pos=(75, 40), tag=f'text_{bmk}')
-            dpg.draw_line(p1=(0, 53), p2=(200, 53), thickness=4,
-                          color=(0, 0, 0, 255), tag=f'line_{bmk}')
-            dpg.draw_line(p1=(75, 65), p2=(110, 65), thickness=10,
-                          color=(255, 0, 255, 255), tag=f'line_bmk_{bmk}')
-        win_pos[0] += 200
-        current_index_bmk = (list(list_of_bmk.keys()).index(bmk) + 1)
-        if current_index_bmk == 2 or current_index_bmk == 4 or current_index_bmk == 7 or current_index_bmk == 10:
-            win_pos[1] += 100
-            win_pos[0] = 400
-
 
 def main_window(q: Queue, q_task: Queue, p1: Process) -> None:
     dpg.create_context()
@@ -339,11 +312,8 @@ def main_window(q: Queue, q_task: Queue, p1: Process) -> None:
     dpg.bind_item_font("TIME", "time_font")
     dpg.bind_item_font("Main lable", "lable_font")
     dpg.bind_font('Main_font')
-    # dpg.set_viewport
     dpg.setup_dearpygui()
     dpg.show_viewport()
-    # dpg.show_style_editor()
-    # dpg.show_metrics()
 
     while dpg.is_dearpygui_running():
         if q.qsize() > 1000:  # ЕСЛИ СЛИШКОМ ДОЛГО ОКНО БЫЛО СВЕРНУТО, ТО ВОТ ТЕБЕ ПРОПУСК В ГРАФИКЕ

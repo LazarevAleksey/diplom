@@ -1,5 +1,10 @@
 import dearpygui.dearpygui as dpg
-from .misc import *
+# from .misc import *
+from multiprocessing import Queue
+from stp_conf.load_json import *
+win_pos: list[int] = [400, 100]
+
+
 def draw_scheme_at_run_time() -> None:
     windows_bmk_pos: list[list[int]] = []
     for bmk in list_of_bmk.keys():
@@ -57,3 +62,21 @@ def draw_scheme_at_run_time() -> None:
             dpg.draw_line(parent="Main window", p1=(400, windows_bmk_pos[i][1] + 29), p2=(
                 900, windows_bmk_pos[i][1] + 29), thickness=4, color=(0, 0, 0, 255))
 
+def draw_bmk_window_at_runtime(q_task: Queue) -> None:
+    for bmk in list_of_bmk.keys():
+        with dpg.window(tag=f"BMK:{bmk}", pos=win_pos, no_background=True, no_resize=True, no_close=True, no_title_bar=True, autosize=True, no_move=True, no_collapse=True):
+            dpg.add_button(label=" ИНФ.", tag=f"bmk_{bmk}", pos=(7, 18))
+            dpg.add_button(
+                label="ДАВЛ.", tag=f'pr_{bmk}', user_data=q_task, pos=(70, 18))
+            dpg.add_button(label="ОШИБ.", tag=f"err_{bmk}", pos=(133, 18))
+            dpg.add_text(f"{list_of_bmk[bmk]}",
+                         pos=(75, 40), tag=f'text_{bmk}')
+            dpg.draw_line(p1=(0, 53), p2=(200, 53), thickness=4,
+                          color=(0, 0, 0, 255), tag=f'line_{bmk}')
+            dpg.draw_line(p1=(75, 65), p2=(110, 65), thickness=10,
+                          color=(255, 0, 255, 255), tag=f'line_bmk_{bmk}')
+        win_pos[0] += 200
+        current_index_bmk = (list(list_of_bmk.keys()).index(bmk) + 1)
+        if current_index_bmk == 2 or current_index_bmk == 4 or current_index_bmk == 7 or current_index_bmk == 10:
+            win_pos[1] += 100
+            win_pos[0] = 400
