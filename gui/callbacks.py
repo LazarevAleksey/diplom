@@ -3,8 +3,8 @@ import backend.backend_parser as parser
 import backend.backend_serial as ser
 from multiprocessing import Queue
 from stp_conf.load_json import *
-
-
+from .misc import *
+import time
 err_pos: list[int] = [800, 700]
 
 
@@ -115,3 +115,39 @@ def create_plot(sender: str, app_data: list[str], q_task: Queue) -> None:
 
 def empty_callback() -> None:
     pass
+
+
+def cancel(s:int, a_p:str, u_d:str) -> None:
+    dpg.delete_item(u_d)
+
+def send_temp_set(s:int, a_p:str, u_d) -> None:
+    temp:int = dpg.get_value('new_temp')
+    temp_com:bytes = f'bmk:{u_d[0]}:setTempHeart={temp}'.encode()
+    commands_list: list[bytes] = []
+    for bmk in list_of_bmk.keys():
+        for command in list_of_control_com[:1]:
+            commands_list.append(ser.commands_generator(bmk, command).encode())
+    commands_list.insert(0, temp_com)
+    u_d[1].put(commands_list)
+    time.sleep(1)
+    commands_list.pop(0)
+    u_d[1].put(commands_list)
+    
+
+
+def set_temp(s:int, a_d:str, user_data) -> None:
+    if dpg.does_item_exist("set_temp_w"):
+        if dpg.is_item_visible("set_temp_w"):
+            return
+        else:
+            dpg.delete_item("set_temp_w")
+    with dpg.window(label=f"Настройка температуры включения обогрева {list_of_bmk[user_data[0]]}", tag="set_temp_w", pos=(500, 400), no_resize=False, width=500, height=150):
+        with dpg.group(horizontal= True):
+            dpg.add_text(default_value= 'Текущее значение (С):')
+            dpg.add_text(default_value="", tag=f'set_temp_c_v')
+        with dpg.group(horizontal=True):
+            dpg.add_text(default_value="Введите новое значение (C):")
+            dpg.add_input_int(default_value=5, width=200, tag='new_temp', max_value=63, min_value=1, max_clamped=True, min_clamped=True)
+        with dpg.group(horizontal=True, horizontal_spacing= 287):
+            dpg.add_button(label="Отмена", callback=cancel, user_data='set_temp_w')         
+            dpg.add_button(label="Настроить", callback=send_temp_set, user_data= user_data)         

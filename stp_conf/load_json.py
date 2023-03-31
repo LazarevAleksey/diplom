@@ -4,3 +4,4 @@ with open('./stp_conf/stp_3.json', 'r') as f:
 
 list_of_bmk:dict[str, str] = data['stp_names']
 list_of_control_com:list[str] = data['list_of_control_com']
+buks_at_each_way:list[int] = data['stp_config']

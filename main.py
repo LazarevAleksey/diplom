@@ -166,14 +166,14 @@ def blick_line_if_error(current_buks_list: list[str]) -> None:
         for bmk in current_buks_list:
             if dpg.get_value(f"line_err{bmk}"):
                 dpg.delete_item(f'line_bmk_{bmk}')
-                dpg.draw_line(parent=f"BMK:{bmk}", p1=(75, 65), p2=(
-                    110, 65), thickness=10, color=(255, 0, 0, 255), tag=f'line_bmk_{bmk}')
+                dpg.draw_line(parent=f"BMK:{bmk}", p1=(70, 65), p2=(
+                    115, 65), thickness=12, color=(255, 0, 0, 255), tag=f'line_bmk_{bmk}')
     if dpg.get_value("cnt") == 120:
         for bmk in current_buks_list:
             if dpg.get_value(f"line_err{bmk}"):
                 dpg.delete_item(f'line_bmk_{bmk}')
-                dpg.draw_line(parent=f"BMK:{bmk}", p1=(75, 65), p2=(
-                    110, 65), thickness=10, color=(0, 0, 255, 255), tag=f'line_bmk_{bmk}')
+                dpg.draw_line(parent=f"BMK:{bmk}", p1=(70, 65), p2=(
+                    115, 65), thickness=12, color=(0, 0, 255, 255), tag=f'line_bmk_{bmk}')
 
     dpg.set_value("cnt", dpg.get_value('cnt') + 1)
     if dpg.get_value('cnt') > 120:
@@ -185,6 +185,8 @@ def redraw_window_table(params: dict[str, dict[str, dict[str, str]]]) -> None:
     data_for_table = params['data']['getStatus\r\n']
     if not data_for_table:
         return
+    if dpg.does_item_exist('set_temp_c_v'):
+        dpg.set_value('set_temp_c_v', data_for_table[list(data_for_table)[16]][0] + str(int(data_for_table[list(data_for_table)[16]][1:])))
     if dpg.does_item_exist(f"MT_{bmk}"):
         for i in range(len(list(data_for_table)) - 1):
             if i == 14 or i == 5:
@@ -246,8 +248,8 @@ def redraw_bmk_window(params_dict: dict[str, dict[str, dict[str, str]]]) -> None
     dpg.draw_line(parent=f"BMK:{bmk}", p1=(0, 53), p2=(
         200, 53), thickness=4, color=(0, 0, 0, 255), tag=f'line_{bmk}')
     dpg.delete_item(f'line_bmk_{bmk}')
-    dpg.draw_line(parent=f"BMK:{bmk}", p1=(75, 65), p2=(
-        110, 65), thickness=10, color=(0, 0, 255, 255), tag=f'line_bmk_{bmk}')
+    dpg.draw_line(parent=f"BMK:{bmk}", p1=(70, 65), p2=(
+        115, 65), thickness=12, color=(0, 0, 255, 255), tag=f'line_bmk_{bmk}')
     dpg.set_item_callback(f'bmk_{bmk}', callback=draw_window_table)
     dpg.set_item_callback(f'err_{bmk}', callback=err_callback)
     dpg.set_item_callback(f'pr_{bmk}', callback=create_plot)
@@ -256,17 +258,16 @@ def redraw_bmk_window(params_dict: dict[str, dict[str, dict[str, str]]]) -> None
 
 def main_window(q: Queue, q_task: Queue, p1: Process) -> None:
     dpg.create_context()
+    dpg.bind_theme(create_theme_imgui_light())
 
     with dpg.window(tag="Main window", no_scrollbar=True, no_focus_on_appearing=False, no_resize=False, no_move=True, autosize=False):
         with dpg.menu_bar():
             with dpg.menu(label="Настроить БМК"):
                 for bmk in list_of_bmk.keys():
                     with dpg.menu(label=f'Настроить {list_of_bmk[bmk]}'):
-                        dpg.add_button(
-                            label="Установить темепературу включения подогрева")
+                        dpg.add_button(label="Установить темепературу включения подогрева", callback=set_temp, user_data=[bmk, q_task])
                         dpg.add_button(label="Установить давление по ступеням")
-                        dpg.add_button(
-                            label="Установить колибровачные значения дла датчиков давления")
+                        dpg.add_button(label="Установить колибровачные значения дла датчиков давления")
 
             dpg.add_menu_item(label="Помощь")
             with dpg.menu(label="О программе"):
@@ -277,7 +278,6 @@ def main_window(q: Queue, q_task: Queue, p1: Process) -> None:
     draw_bmk_window_at_runtime(q_task)
     draw_scheme_at_run_time()
 
-    dpg.bind_theme(create_theme_imgui_light())
 
 
     dpg.set_primary_window("Main window", True)

@@ -93,7 +93,7 @@ def draw_info_table(bmk:str, data_for_table:dict[str, str]) -> None:
         dpg.add_text(str(str(int(data_for_table[list(data_for_table)[15]]))) + "B", tag=f"row{bmk}_{15}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Температура для вкл. обогрева:")
-        dpg.add_text(data_for_table[list(data_for_table)[16]][0] + str(str(data_for_table[list(data_for_table)[16]])[1:]), tag=f"row{bmk}_{16}")
+        dpg.add_text(data_for_table[list(data_for_table)[16]][0] + str(int(data_for_table[list(data_for_table)[16]][1:])), tag=f"row{bmk}_{16}")
     with dpg.table_row(parent= f"MT_{bmk}"):
         dpg.add_text("Время работы (C):")
         dpg.add_text(str(int(data_for_table[list(data_for_table)[17]])), tag=f"row{bmk}_{17}")
