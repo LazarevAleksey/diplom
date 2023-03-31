@@ -85,6 +85,11 @@ def close_plot(sender: int, app_data: str, q_task: Queue) -> None:
 
 
 def create_plot(sender: str, app_data: list[str], q_task: Queue) -> None:
+
+    commands_list: list[bytes] = []
+    for bmk in list_of_bmk.keys():
+        for command in list_of_control_com[:1]:
+            commands_list.append(ser.commands_generator(bmk, command).encode())
     if dpg.does_item_exist("plot_win"):
         if dpg.is_item_visible("plot_win"):
             return
@@ -136,6 +141,17 @@ def send_temp_set(s:int, a_p:str, u_d) -> None:
 
 
 def set_temp(s:int, a_d:str, user_data) -> None:
+    global list_for_plot_y2, list_for_plot_x, list_for_plot_y1
+    commands_list: list[bytes] = []
+    for bmk in list_of_bmk.keys():
+        for command in list_of_control_com[:1]:
+            commands_list.append(ser.commands_generator(bmk, command).encode())
+    if dpg.does_item_exist("plot_win"):
+        dpg.delete_item("plot_win")
+        list_for_plot_x = []
+        list_for_plot_y1 = []
+        list_for_plot_y2 = []
+        user_data[1].put(commands_list)
     if dpg.does_item_exist("set_temp_w"):
         if dpg.is_item_visible("set_temp_w"):
             return
