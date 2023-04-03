@@ -17,12 +17,12 @@ import random
 
 
 cnt: int = 0
-
+new_temp: int = 5
 
 def create_dict_to_emulate_bmk(commands_list: list[bytes], q: Queue) -> None:
     dict_to_write: dict[str, bool | dict[str, str]] = {}
     print(commands_list)
-    global cnt
+    global cnt, new_temp
     for command in commands_list:
         command_name = f'{command[8:].decode()}'
         bmk_num = f'{command[4:7].decode()}'
@@ -31,13 +31,13 @@ def create_dict_to_emulate_bmk(commands_list: list[bytes], q: Queue) -> None:
             cnt += 1
             if cnt > 5 and cnt < 7:
                 dict_to_write[f'{command_name}'] = parser.parse_com_str(
-                    f"={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
+                    f"={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+{new_temp} timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
                 q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
                 dict_to_write = {}
             else:
                 time.sleep(0.2)
                 dict_to_write[f'{command_name}'] = parser.parse_com_str(
-                    f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
+                    f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+{new_temp} timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
                 q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
                 dict_to_write = {}
             if cnt > 10:
@@ -47,13 +47,13 @@ def create_dict_to_emulate_bmk(commands_list: list[bytes], q: Queue) -> None:
             cnt += 1
             if cnt > 5 and cnt < 7:
                 dict_to_write[f'{command_name}'] = parser.parse_com_str(
-                    f"={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
+                    f"={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+{new_temp} timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
                 q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
                 dict_to_write = {}
             else:
                 time.sleep(0.2)
                 dict_to_write[f'{command_name}'] = parser.parse_com_str(
-                    f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
+                    f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+{new_temp} timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
                 q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
                 dict_to_write = {}
             if cnt > 10:
@@ -62,14 +62,14 @@ def create_dict_to_emulate_bmk(commands_list: list[bytes], q: Queue) -> None:
         if command == 'bmk:010:getStatus\r\n'.encode():
             time.sleep(0.2)
             dict_to_write[f'{command_name}'] = parser.parse_com_str(
-                f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
+                f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000300  uPit=23  temHeart=+{new_temp} timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
             q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
             dict_to_write = {}
             continue
         if command_name == 'getStatus\r\n':
             time.sleep(0.2)
             dict_to_write[f'{command_name}'] = parser.parse_com_str(
-                f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000000  uPit=23  temHeart=+05 timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
+                f"bmk={bmk_num} bmkS=007 bmkSK=2 pr={str(random.randrange(0,400))} pr0=000 pr1=000 temp=+232 P05=064 P10=125  P15=219  P20=316  P25=401  P30=489  P35=581  Err=00000000  uPit=23  temHeart=+{new_temp} timeW=00003053 prAtmCal0=+00 prAtmCal1=+00 Styp=00 l=000 temp2=+242 timeR=000006 cs=114\r\n".encode(), command_name)
             q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
             dict_to_write = {}
         elif command_name == 'gPr\r\n':
@@ -78,7 +78,9 @@ def create_dict_to_emulate_bmk(commands_list: list[bytes], q: Queue) -> None:
                 f"bmk={bmk_num} pr0={str(random.randrange(300,400))} pr1={str(random.randrange(200,400))} pr2=000 er=00000000 bmkC=007 prC0=003 prC1=000 erC=00000000 cs=016".encode(), command_name)
             q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
             dict_to_write = {}
-
+        elif command_name[:-2] == 'setTempHeart':
+            new_temp = int(command_name[-1:])
+            
 
 def main_com_loop(q: Queue, q_task: Queue) -> None:
     ser.PORT = ser.avilable_com()
@@ -185,8 +187,8 @@ def redraw_window_table(params: dict[str, dict[str, dict[str, str]]]) -> None:
     data_for_table = params['data']['getStatus\r\n']
     if not data_for_table:
         return
-    if dpg.does_item_exist('set_temp_c_v'):
-        dpg.set_value('set_temp_c_v', data_for_table[list(data_for_table)[16]][0] + str(int(data_for_table[list(data_for_table)[16]][1:])))
+    if dpg.does_item_exist(f'set_temp_c_v_{bmk}'):
+        dpg.set_value(f'set_temp_c_v_{bmk}', data_for_table[list(data_for_table)[16]][0] + str(int(data_for_table[list(data_for_table)[16]][1:])))
     if dpg.does_item_exist(f"MT_{bmk}"):
         for i in range(len(list(data_for_table)) - 1):
             if i == 14 or i == 5:

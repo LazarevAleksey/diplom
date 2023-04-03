@@ -126,6 +126,7 @@ def cancel(s:int, a_p:str, u_d:str) -> None:
     dpg.delete_item(u_d)
 
 def send_temp_set(s:int, a_p:str, u_d) -> None:
+    i:int = 0
     temp:int = dpg.get_value('new_temp')
     temp_com:bytes = f'bmk:{u_d[0]}:setTempHeart={temp}'.encode()
     commands_list: list[bytes] = []
@@ -137,6 +138,12 @@ def send_temp_set(s:int, a_p:str, u_d) -> None:
     time.sleep(1)
     commands_list.pop(0)
     u_d[1].put(commands_list)
+    while dpg.get_value(f'set_temp_c_v_{u_d[0]}')[1:] != dpg.get_value('new_temp'):
+        time.sleep(0.1)
+        print(f'set_temp_c_v_{u_d[0][1:]}')
+        print(dpg.get_value(f'set_temp_c_v_{u_d[0][1:]}'),  dpg.get_value('new_temp'))
+        print(dpg.get_value(f'set_temp_c_v_{u_d[0][1:]}') == dpg.get_value('new_temp'))
+        dpg.set_value('pr_bar', i / 1000)
     
 
 
@@ -160,10 +167,12 @@ def set_temp(s:int, a_d:str, user_data) -> None:
     with dpg.window(label=f"Настройка температуры включения обогрева {list_of_bmk[user_data[0]]}", tag="set_temp_w", pos=(500, 400), no_resize=False, width=500, height=150):
         with dpg.group(horizontal= True):
             dpg.add_text(default_value= 'Текущее значение (С):')
-            dpg.add_text(default_value="", tag=f'set_temp_c_v')
+            dpg.add_text(default_value="", tag=f'set_temp_c_v_{user_data[0]}')
         with dpg.group(horizontal=True):
             dpg.add_text(default_value="Введите новое значение (C):")
             dpg.add_input_int(default_value=5, width=200, tag='new_temp', max_value=63, min_value=1, max_clamped=True, min_clamped=True)
         with dpg.group(horizontal=True, horizontal_spacing= 287):
             dpg.add_button(label="Отмена", callback=cancel, user_data='set_temp_w')         
-            dpg.add_button(label="Настроить", callback=send_temp_set, user_data= user_data)         
+            dpg.add_button(label="Настроить", callback=send_temp_set, user_data= user_data)       
+        dpg.add_progress_bar(label= "Настройка", tag = "pr_bar")
+      
