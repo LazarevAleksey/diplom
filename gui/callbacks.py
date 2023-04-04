@@ -124,6 +124,8 @@ def empty_callback() -> None:
 
 def cancel(s:int, a_p:str, u_d:str) -> None:
     dpg.delete_item(u_d)
+    if dpg.does_item_exist('res_s'):
+        dpg.delete_item('res_s')
 
 def send_temp_set(s:int, a_p:str, u_d) -> None:
     i:int = 0
@@ -138,15 +140,23 @@ def send_temp_set(s:int, a_p:str, u_d) -> None:
     time.sleep(1)
     commands_list.pop(0)
     u_d[1].put(commands_list)
-    while dpg.get_value(f'set_temp_c_v_{u_d[0]}')[1:] != dpg.get_value('new_temp'):
-        time.sleep(0.1)
-        print(f'set_temp_c_v_{u_d[0][1:]}')
-        print(dpg.get_value(f'set_temp_c_v_{u_d[0][1:]}'),  dpg.get_value('new_temp'))
-        print(dpg.get_value(f'set_temp_c_v_{u_d[0][1:]}') == dpg.get_value('new_temp'))
-        dpg.set_value('pr_bar', i / 1000)
+    dpg.set_item_callback('canc', empty_callback)
+    dpg.set_item_callback('set', empty_callback)
+    while int(dpg.get_value(f'set_temp_c_v_{u_d[0]}').replace('+', '')) != dpg.get_value('new_temp'):
+        dpg.set_value('p_b_temp', i / 120000)
+        i += 1
+        if i > 1000000:
+            with dpg.window(label='Результат настройки', tag = 'res_s', autosize= False, pos= dpg.get_item_pos('set_temp_w'), width= 500):
+                dpg.add_text(default_value='Неудачная попатка насйтроки, попробуйте ещё!')
+                dpg.add_button(label='Ок', callback=cancel, user_data='set_temp_w')
+            return
+    with dpg.window(label='Результат настройки', tag = 'res_s', autosize= False, pos= dpg.get_item_pos('set_temp_w'), width= 300):
+        dpg.add_text(default_value='Успех!')
+        dpg.add_button(label='Ок', callback=cancel, user_data='set_temp_w')
+    dpg.set_value('p_b_temp', 1)
+    return
     
-
-
+    
 def set_temp(s:int, a_d:str, user_data) -> None:
     global list_for_plot_y2, list_for_plot_x, list_for_plot_y1
     commands_list: list[bytes] = []
@@ -172,7 +182,7 @@ def set_temp(s:int, a_d:str, user_data) -> None:
             dpg.add_text(default_value="Введите новое значение (C):")
             dpg.add_input_int(default_value=5, width=200, tag='new_temp', max_value=63, min_value=1, max_clamped=True, min_clamped=True)
         with dpg.group(horizontal=True, horizontal_spacing= 287):
-            dpg.add_button(label="Отмена", callback=cancel, user_data='set_temp_w')         
-            dpg.add_button(label="Настроить", callback=send_temp_set, user_data= user_data)       
-        dpg.add_progress_bar(label= "Настройка", tag = "pr_bar")
+            dpg.add_button(label="Отмена", callback=cancel, user_data='set_temp_w', tag='canc')         
+            dpg.add_button(label="Настроить", callback=send_temp_set, user_data= user_data, tag='set')       
+        dpg.add_progress_bar(default_value=0, tag = 'p_b_temp', width=450)  
       

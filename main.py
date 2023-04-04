@@ -78,10 +78,9 @@ def create_dict_to_emulate_bmk(commands_list: list[bytes], q: Queue) -> None:
                 f"bmk={bmk_num} pr0={str(random.randrange(300,400))} pr1={str(random.randrange(200,400))} pr2=000 er=00000000 bmkC=007 prC0=003 prC1=000 erC=00000000 cs=016".encode(), command_name)
             q.put({'bmk': f'{bmk_num}', 'data': dict_to_write})
             dict_to_write = {}
-        elif command_name[:-2] == 'setTempHeart':
-            new_temp = int(command_name[-1:])
-            
-
+        elif b'setTempHeart' in command:
+            new_temp = int(command_name.split('=')[1])
+        
 def main_com_loop(q: Queue, q_task: Queue) -> None:
     ser.PORT = ser.avilable_com()
     commands_list: list[bytes] = []
@@ -93,6 +92,8 @@ def main_com_loop(q: Queue, q_task: Queue) -> None:
             sending_commands_loop(commands_list, q, port)
             if not q_task.empty():
                 commands_list = q_task.get_nowait()
+                if commands_list == "KILL":
+                    return
 
 
 def sending_commands_loop(commands_list: list[bytes], q: Queue, port: serial.Serial) -> None:
@@ -112,6 +113,8 @@ def bmk_emulator(q: Queue, q_task: Queue) -> None:
         create_dict_to_emulate_bmk(commands_list, q)
         if not q_task.empty():
             commands_list = q_task.get_nowait()
+            if commands_list == "KILL":
+                return
 
 
 def show_bmk_windows(q: Queue) -> None:
@@ -189,6 +192,7 @@ def redraw_window_table(params: dict[str, dict[str, dict[str, str]]]) -> None:
         return
     if dpg.does_item_exist(f'set_temp_c_v_{bmk}'):
         dpg.set_value(f'set_temp_c_v_{bmk}', data_for_table[list(data_for_table)[16]][0] + str(int(data_for_table[list(data_for_table)[16]][1:])))
+        print(dpg.get_value(f'set_temp_c_v_{bmk}'))
     if dpg.does_item_exist(f"MT_{bmk}"):
         for i in range(len(list(data_for_table)) - 1):
             if i == 14 or i == 5:
@@ -258,10 +262,9 @@ def redraw_bmk_window(params_dict: dict[str, dict[str, dict[str, str]]]) -> None
     dpg.set_item_user_data(f'bmk_{bmk}', params_dict)
     dpg.set_item_user_data(f'err_{bmk}', params_dict)
 
-def main_window(q: Queue, q_task: Queue, p1: Process) -> None:
+def main_window(q: Queue, q_task: Queue) -> None:
     dpg.create_context()
     dpg.bind_theme(create_theme_imgui_light())
-
     with dpg.window(tag="Main window", no_scrollbar=True, no_focus_on_appearing=False, no_resize=False, no_move=True, autosize=False):
         with dpg.menu_bar():
             with dpg.menu(label="Настроить БМК"):
@@ -279,19 +282,14 @@ def main_window(q: Queue, q_task: Queue, p1: Process) -> None:
 
     draw_bmk_window_at_runtime(q_task)
     draw_scheme_at_run_time()
-
-
-
     dpg.set_primary_window("Main window", True)
     dpg.create_viewport(title="STP ARS-4", width=1980, height=1024,
                         resizable=True, min_width=1000, min_height=800)
-
     with dpg.value_registry():
         for bmk in list_of_bmk.keys():
             dpg.add_bool_value(tag=f"line_err{bmk}", default_value=False)
             dpg.add_bool_value(tag=f"line_cnt{bmk}", default_value=True)
         dpg.add_int_value(tag=f"cnt", default_value=- 120)
-
     with dpg.theme(tag="ser1_theme"):
         with dpg.theme_component(dpg.mvLineSeries):
             dpg.add_theme_color(dpg.mvPlotCol_Line, (0, 255, 0),
@@ -300,7 +298,6 @@ def main_window(q: Queue, q_task: Queue, p1: Process) -> None:
         with dpg.theme_component(dpg.mvLineSeries):
             dpg.add_theme_color(dpg.mvPlotCol_Line, (255, 0, 0),
                                 category=dpg.mvThemeCat_Plots)
-
     with dpg.font_registry():
         with dpg.font("./fonts/Cousine-Bold.ttf", 18, default_font=True, tag='Main_font'):
             dpg.add_font_range_hint(dpg.mvFontRangeHint_Cyrillic)
@@ -310,13 +307,11 @@ def main_window(q: Queue, q_task: Queue, p1: Process) -> None:
             dpg.add_font_range_hint(dpg.mvFontRangeHint_Cyrillic)
         with dpg.font("./fonts/Cousine-Bold.ttf", 18, default_font=True, tag='time_font'):
             dpg.add_font_range_hint(dpg.mvFontRangeHint_Cyrillic)
-
     dpg.bind_item_font("TIME", "time_font")
     dpg.bind_item_font("Main lable", "lable_font")
     dpg.bind_font('Main_font')
     dpg.setup_dearpygui()
     dpg.show_viewport()
-
     while dpg.is_dearpygui_running():
         if q.qsize() > 1000:  # ЕСЛИ СЛИШКОМ ДОЛГО ОКНО БЫЛО СВЕРНУТО, ТО ВОТ ТЕБЕ ПРОПУСК В ГРАФИКЕ
             while not q.empty():
@@ -324,8 +319,7 @@ def main_window(q: Queue, q_task: Queue, p1: Process) -> None:
         print_real_time()
         show_bmk_windows(q)
         dpg.render_dearpygui_frame()
-
-    p1.kill()
+    q_task.put("KILL")
     dpg.destroy_context()
 
 
@@ -333,6 +327,9 @@ if __name__ == '__main__':
     q = Queue()
     q_task = Queue()
     p1 = Process(target=bmk_emulator, args=(q, q_task))
-    p2 = Process(target=main_window, args=(q, q_task, p1))
+    p2 = Process(target=main_window, args=(q, q_task))
     p1.start()
     p2.start()
+    p1.join()
+    p2.join()
+    exit(0)
