@@ -1,6 +1,9 @@
 import dearpygui.dearpygui as dpg
 import datetime
 
+stup:list[str] = ['05', '10', '15', '20', '25', '30', '35']
+
+
 
 def styp_torm(styp:str) ->str:
     if styp == '00':

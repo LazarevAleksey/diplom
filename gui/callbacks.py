@@ -157,6 +157,49 @@ def send_temp_set(s:int, a_p:str, u_d) -> None:
     return
     
     
+    
+    
+def set_pr_st(s:int, a_d:str, user_data) -> None:
+    global list_for_plot_y2, list_for_plot_x, list_for_plot_y1
+    commands_list: list[bytes] = []
+    for bmk in list_of_bmk.keys():
+        for command in list_of_control_com[:1]:
+            commands_list.append(ser.commands_generator(bmk, command).encode())
+    if dpg.does_item_exist("plot_win"):
+        dpg.delete_item("plot_win")
+        list_for_plot_x = []
+        list_for_plot_y1 = []
+        list_for_plot_y2 = []
+        user_data[1].put(commands_list)
+    if dpg.does_item_exist(f"set_pr_st{user_data[0]}"):
+        if dpg.is_item_visible(f"set_pr_st{user_data[0]}"):
+            return
+        else:
+            dpg.delete_item("set_pt_st")
+    with dpg.window(label=f"Настройка далвения по ступеням {list_of_bmk[user_data[0]]}", tag=f"set_pr_st{user_data[0]}", pos=(500, 400), no_resize=False, width=500, height=150, on_close=cancel, user_data= f"set_pr_st{user_data[0]}"):
+        with dpg.group(horizontal= True):
+            dpg.add_text(default_value= 'Текущее значение давления ступени 0,5:')
+            dpg.add_input_int(default_value=5, width=200, tag=f'new_pr_05{user_data[0]}', max_value=125, min_value=15, max_clamped=True, min_clamped=True)
+        with dpg.group(horizontal= True):
+            dpg.add_text(default_value= 'Текущее значение давления ступени 1,0:')
+            dpg.add_input_int(default_value=5, width=200, tag=f'new_pr_10{user_data[0]}', max_value=170, min_value=76, max_clamped=True, min_clamped=True)
+        with dpg.group(horizontal= True):
+            dpg.add_text(default_value= 'Текущее значение давления ступени 1,5:')
+            dpg.add_input_int(default_value=5, width=200, tag=f'new_pr_15{user_data[0]}', max_value=277, min_value=137, max_clamped=True, min_clamped=True)
+        with dpg.group(horizontal= True):
+            dpg.add_text(default_value= 'Текущее значение давления ступени 2,0:')
+            dpg.add_input_int(default_value=5, width=200, tag=f'new_pr_20{user_data[0]}', max_value=395, min_value=213, max_clamped=True, min_clamped=True)
+        with dpg.group(horizontal= True):
+            dpg.add_text(default_value= 'Текущее значение давления ступени 2,5:')
+            dpg.add_input_int(default_value=5, width=200, tag=f'new_pr_25{user_data[0]}', max_value=502, min_value=289, max_clamped=True, min_clamped=True)
+        with dpg.group(horizontal= True):
+            dpg.add_text(default_value= 'Текущее значение давления ступени 3,0:')
+            dpg.add_input_int(default_value=5, width=200, tag=f'new_pr_30{user_data[0]}', max_value=577, min_value=395, max_clamped=True, min_clamped=True)
+        with dpg.group(horizontal= True):
+            dpg.add_text(default_value= 'Текущее значение давления ступени 3,5:')
+            dpg.add_input_int(default_value=5, width=200, tag=f'new_pr_35{user_data[0]}', max_value=486, min_value=684, max_clamped=True, min_clamped=True)
+        
+    
 def set_temp(s:int, a_d:str, user_data) -> None:
     global list_for_plot_y2, list_for_plot_x, list_for_plot_y1
     commands_list: list[bytes] = []

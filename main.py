@@ -92,7 +92,7 @@ def main_com_loop(q: Queue, q_task: Queue) -> None:
             sending_commands_loop(commands_list, q, port)
             if not q_task.empty():
                 commands_list = q_task.get_nowait()
-                if commands_list == "KILL":
+                if commands_list == [b'KILL']:
                     return
 
 
@@ -113,7 +113,7 @@ def bmk_emulator(q: Queue, q_task: Queue) -> None:
         create_dict_to_emulate_bmk(commands_list, q)
         if not q_task.empty():
             commands_list = q_task.get_nowait()
-            if commands_list == "KILL":
+            if commands_list == [b'KILL']:
                 return
 
 
@@ -184,15 +184,23 @@ def blick_line_if_error(current_buks_list: list[str]) -> None:
     if dpg.get_value('cnt') > 120:
         dpg.set_value('cnt', 0)
 
-
 def redraw_window_table(params: dict[str, dict[str, dict[str, str]]]) -> None:
     bmk: str = str(params['bmk'])
     data_for_table = params['data']['getStatus\r\n']
     if not data_for_table:
         return
+    
+    if dpg.does_item_exist(f'set_pr_st{bmk}'):
+        for cnt, st in enumerate(stup):
+            cnt += 7 # номера ступеней в посылке дата_фор_тэйбл
+            # if dpg.get_value(f'new_pr_{st}{bmk}') == int(data_for_table[list(data_for_table)[cnt]]):
+            #     break
+            dpg.set_value(f'new_pr_{st}{bmk}', int(data_for_table[list(data_for_table)[cnt]]))
     if dpg.does_item_exist(f'set_temp_c_v_{bmk}'):
         dpg.set_value(f'set_temp_c_v_{bmk}', data_for_table[list(data_for_table)[16]][0] + str(int(data_for_table[list(data_for_table)[16]][1:])))
         print(dpg.get_value(f'set_temp_c_v_{bmk}'))
+    
+    
     if dpg.does_item_exist(f"MT_{bmk}"):
         for i in range(len(list(data_for_table)) - 1):
             if i == 14 or i == 5:
@@ -271,9 +279,8 @@ def main_window(q: Queue, q_task: Queue) -> None:
                 for bmk in list_of_bmk.keys():
                     with dpg.menu(label=f'Настроить {list_of_bmk[bmk]}'):
                         dpg.add_button(label="Установить темепературу включения подогрева", callback=set_temp, user_data=[bmk, q_task])
-                        dpg.add_button(label="Установить давление по ступеням")
+                        dpg.add_button(label="Установить давление по ступеням", callback=set_pr_st, user_data=[bmk, q_task])
                         dpg.add_button(label="Установить колибровачные значения дла датчиков давления")
-
             dpg.add_menu_item(label="Помощь")
             with dpg.menu(label="О программе"):
                 dpg.add_text(default_value="""Разработано в ЦКЖТ в 2023 году
@@ -319,7 +326,7 @@ def main_window(q: Queue, q_task: Queue) -> None:
         print_real_time()
         show_bmk_windows(q)
         dpg.render_dearpygui_frame()
-    q_task.put("KILL")
+    q_task.put([b'KILL'])
     dpg.destroy_context()
 
 
@@ -332,4 +339,4 @@ if __name__ == '__main__':
     p2.start()
     p1.join()
     p2.join()
-    exit(0)
+    
